@@ -1,187 +1,99 @@
-# CyclingToken (CYCL)
+# CyclingToken (CYCL) - Project 2.0
 
-CyclingToken è un token ERC-20 deployato sulla testnet Ethereum Sepolia.
+Benvenuto nel repository di CyclingToken! Questo progetto è un'applicazione "Bike-to-Earn" che premia gli utenti con token ERC-20 per i chilometri percorsi in bicicletta.
 
-## Dettagli Token
-
-- **Nome**: CyclingToken
-- **Simbolo**: CYCL
-- **Decimali**: 18
-- **Supply iniziale**: 1,000,000 CYCL
-- **Network**: Ethereum Sepolia (testnet)
-- **Contract address**: `[INSERISCI_CONTRACT_ADDRESS]`
-- **Etherscan**: `https://sepolia.etherscan.io/address/[INSERISCI_CONTRACT_ADDRESS]`
+Il progetto è stato aggiornato per supportare lo sviluppo locale rapido e il deploy economico su Polygon Amoy.
 
 ---
 
-## Requisiti
+## 📂 Struttura del Progetto
 
-- Node.js >= 18
-- npm >= 9
-- Wallet EVM (Rabby / MetaMask) con Sepolia ETH di test
+Ecco i file e le cartelle principali che sono stati creati o modificati:
+
+### Smart Contracts & Backend (Hardhat)
+- **`contracts/CyclingToken.sol`**: Lo Smart Contract ERC-20 del token.
+- **`hardhat.config.js`**: Configurazione aggiornata per supportare **Localhost** e **Polygon Amoy**.
+- **`test/CyclingToken.js`** (Nuovo): Suite di test automatizzati per verificare il funzionamento del contratto senza spendere gas.
+- **`scripts/deploy_amoy.js`** (Nuovo): Script specifico per il deploy sulla testnet Polygon Amoy.
+
+### Frontend (React + Vite)
+- **`frontend/`** (Nuovo): Cartella contenente l'applicazione web.
+  - **`src/App.jsx`**: Logica principale dell'interfaccia e connessione al Wallet.
+  - **`src/index.css`**: Stili globali con design "Dark Mode" premium.
+  - **`package.json`**: Gestione dipendenze (Vite, Ethers, Framer Motion).
 
 ---
 
-## Installazione
+## 🚀 Guida Rapida: Come Attivare Tutto
 
+Segui questi passaggi per far partire il progetto sul tuo computer.
+
+### 1. Prerequisiti
+Assicurati di avere installato:
+- Node.js (v18 o superiore)
+- Un Wallet (Rabby o MetaMask) installato nel browser.
+
+### 2. Setup Smart Contracts (Backend)
+
+Installa le dipendenze nella cartella principale:
 ```bash
-git clone https://github.com/[TUO_USERNAME]/cycling_token.git
-cd cycling_token
 npm install
 ```
 
----
-
-## Configurazione `.env`
-
-Crea un file `.env` nella root del progetto:
-
+#### Eseguire i Test (Consigliato)
+Verifica che il contratto funzioni correttamente eseguendo i test locali:
 ```bash
-nano .env
+npx hardhat test
 ```
+*Dovresti vedere 5 spunte verdi.*
 
-Contenuto minimo:
+#### (Opzionale) Deploy su Polygon Amoy
+Se vuoi mettere il contratto online sulla testnet pubblica:
+1. Crea un file `.env` con la tua `PRIVATE_KEY` e `POLYGON_AMOY_RPC_URL`.
+2. Esegui:
+   ```bash
+   npx hardhat run scripts/deploy_amoy.js --network amoy
+   ```
 
-```env
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/[ALCHEMY_API_KEY]
-PRIVATE_KEY=[PRIVATE_KEY_SENZA_0x]
-ETHERSCAN_API_KEY=[ETHERSCAN_API_KEY]
-```
+### 3. Setup Frontend (Interfaccia Web)
 
-**Note:**
-- `PRIVATE_KEY`: chiave privata dell'account che fa il deploy, senza prefisso `0x`
-- Non committare mai `.env` (è già in `.gitignore`)
-
----
-
-## Compilazione
-
+Spostati nella cartella del frontend e installa le librerie:
 ```bash
-npx hardhat compile
+cd frontend
+npm install
 ```
 
----
-
-## Deploy su Sepolia
-
+Avvia il server di sviluppo:
 ```bash
-npx hardhat run scripts/deploy.js --network sepolia
+npm run dev
 ```
 
-Output atteso:
+Ora apri il link che appare nel terminale (solitamente `http://localhost:5173`).
+Clicca su **"Connect Wallet"** in alto a destra per collegare il tuo Rabby Wallet!
 
-```
-Deploying with account: 0x...
-CyclingToken deployed to: 0x...[CONTRACT_ADDRESS]
-```
+### 4. Versione Mobile (Android) 📱
 
-Copia e incolla `CONTRACT_ADDRESS` nella sezione "Dettagli Token" qui sopra.
+Il progetto è pronto per essere trasformato in un'App Android nativa.
+
+1. **Installa Android Studio**: Scaricalo dal sito ufficiale.
+2. **Apri il progetto**:
+   - Apri Android Studio.
+   - Seleziona "Open" e naviga nella cartella `cycling_token/frontend/android`.
+3. **Genera l'APK**:
+   - Attendi che Gradle finisca la sincronizzazione.
+   - Vai su `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
+   - Troverai il file `.apk` nella cartella di output (Android Studio ti mostrerà una notifica "locate").
+4. **Installa sul telefono**: Invia il file `.apk` al tuo telefono e installalo!
 
 ---
 
-## Verifica del contratto su Etherscan
-
-Assicurati che `ETHERSCAN_API_KEY` sia impostata nel `.env`, poi:
-
-```bash
-npx hardhat verify --network sepolia [CONTRACT_ADDRESS] 1000000
-```
-
-Dove `1000000` è l'`initialSupply` passato al costruttore.
+## 🛠 Tecnologie Usate
+- **Blockchain**: Solidity, Hardhat, Ethers.js v6
+- **Frontend**: React 19, Vite, Framer Motion (Animazioni), Lucide React (Icone)
+- **Network**: Hardhat Localhost (Sviluppo), Polygon Amoy (Testnet)
 
 ---
 
-## Struttura del progetto
-
-```
-cycling_token/
-├── contracts/
-│   └── CyclingToken.sol
-├── scripts/
-│   ├── deploy.js
-│   └── transfer.js        # opzionale
-├── .env                   # NON va su Git
-├── .gitignore
-├── hardhat.config.js
-├── package.json
-└── README.md
-```
-
----
-
-## Trasferire token
-
-### Metodo 1: Tramite Wallet
-
-1. Importa il token in Rabby/MetaMask usando `CONTRACT_ADDRESS`
-2. Vai su Sepolia network
-3. Clicca "Send" sul token CYCL
-4. Inserisci indirizzo destinatario e quantità
-5. Conferma la transazione
-
-### Metodo 2: Tramite script
-
-Crea `scripts/transfer.js`:
-
-```javascript
-const hre = require("hardhat");
-
-async function main() {
-  const tokenAddress = "[CONTRACT_ADDRESS]";
-  const recipientAddress = "[INDIRIZZO_DESTINATARIO]";
-  const amount = hre.ethers.utils.parseUnits("1000", 18); // 1000 CYCL
-
-  const CyclingToken = await hre.ethers.getContractAt("CyclingToken", tokenAddress);
-  const tx = await CyclingToken.transfer(recipientAddress, amount);
-
-  console.log("Transfer TX:", tx.hash);
-  await tx.wait();
-  console.log("Transfer completato!");
-}
-
-main().catch(console.error);
-```
-
-Esegui con:
-
-```bash
-npx hardhat run scripts/transfer.js --network sepolia
-```
-
----
-
-## Per utenti/collaboratori
-
-Se vuoi usare CyclingToken senza fare il deploy:
-
-1. Installa Rabby Wallet o MetaMask
-2. Aggiungi Ethereum Sepolia network
-3. Importa il token con questi dettagli:
-   - **Contract address**: `[CONTRACT_ADDRESS]`
-   - **Symbol**: CYCL
-   - **Decimals**: 18
-4. Richiedi token al creatore del progetto
-
----
-
-## Tecnologie utilizzate
-
-- [Hardhat](https://hardhat.org/) - Framework di sviluppo Ethereum
-- [OpenZeppelin Contracts](https://openzeppelin.com/contracts/) - Contratti sicuri ERC-20
-- [ethers.js](https://docs.ethers.org/) - Libreria Ethereum
-- [Alchemy](https://www.alchemy.com) - Provider RPC
-
----
-
-## Link utili
-
-- [Sepolia Faucet (Alchemy)](https://www.alchemy.com/faucets/ethereum-sepolia)
-- [Sepolia Faucet (Chainlink)](https://faucets.chain.link/sepolia)
-- [Sepolia Etherscan](https://sepolia.etherscan.io/)
-- [Documentazione OpenZeppelin ERC-20](https://docs.openzeppelin.com/contracts/4.x/erc20)
-
----
-
-## Licenza
-
-MIT
+## 📝 Note per lo Sviluppo
+- **Design**: L'interfaccia usa CSS puro con variabili per un look moderno e facile da modificare.
+- **Compatibilità**: Il progetto è configurato per funzionare con Node.js v18 (LTS).
