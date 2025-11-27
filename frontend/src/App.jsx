@@ -1,26 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { Wallet, Bike, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { contractAddress, contractABI } from './config';
 
 function App() {
   const [account, setAccount] = useState(null);
   const [balance, setBalance] = useState('0');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            connectWallet();
+          }
+        } catch (error) {
+          console.error("Error checking connection:", error);
+        }
+      }
+    };
+    checkConnection();
+  }, []);
+
   const connectWallet = async () => {
     if (window.ethereum) {
       try {
         setLoading(true);
         const provider = new ethers.BrowserProvider(window.ethereum);
+
+        const network = await provider.getNetwork();
+        if (network.chainId !== 80002n) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x13882' }],
+            });
+          } catch (switchError) {
+            // This error code indicates that the chain has not been added to MetaMask.
+            if (switchError.code === 4902) {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [
+                  {
+                    chainId: '0x13882',
+                    chainName: 'Polygon Amoy',
+                    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+                    nativeCurrency: {
+                      name: 'POLYGON',
+                      symbol: 'POL',
+                      decimals: 18
+                    },
+                    blockExplorerUrls: ['https://amoy.polygonscan.com/']
+                  }
+                ],
+              });
+            } else {
+              throw switchError;
+            }
+          }
+        }
+
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
         setAccount(address);
 
         // Here we would fetch the balance from the contract
-        // const contract = new ethers.Contract(address, abi, signer);
-        // const bal = await contract.balanceOf(address);
-        // setBalance(ethers.formatUnits(bal, 18));
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+        const bal = await contract.balanceOf(address);
+        setBalance(ethers.formatUnits(bal, 18));
 
         setLoading(false);
       } catch (error) {
