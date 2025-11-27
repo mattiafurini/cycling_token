@@ -78,6 +78,15 @@ function App() {
         const contractOwner = await contract.owner();
         setOwner(contractOwner);
 
+        // Fetch user data from backend
+        try {
+          const response = await fetch(`http://localhost:3000/api/user/${address}`);
+          const userData = await response.json();
+          setPendingReward(parseFloat(userData.pending_balance));
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+        }
+
         setLoading(false);
       } catch (error) {
         console.error("Error connecting wallet:", error);
@@ -88,12 +97,24 @@ function App() {
     }
   };
 
-  const simulateRide = () => {
+  const simulateRide = async () => {
+    if (!account) return;
     setLoading(true);
-    setTimeout(() => {
-      setPendingReward(prev => prev + 10);
-      setLoading(false);
-    }, 1000);
+
+    try {
+      // Simulate 10km ride
+      const response = await fetch('http://localhost:3000/api/ride', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: account, km: 10 })
+      });
+      const userData = await response.json();
+      setPendingReward(parseFloat(userData.pending_balance));
+    } catch (err) {
+      console.error("Error simulating ride:", err);
+    }
+
+    setLoading(false);
   };
 
   const claimReward = async () => {
@@ -112,6 +133,13 @@ function App() {
 
       const tx = await contract.mint(account, ethers.parseUnits(pendingReward.toString(), 18));
       await tx.wait();
+
+      // Notify backend of success to reset balance
+      await fetch('http://localhost:3000/api/claim-success', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: account })
+      });
 
       // Refresh balance
       const bal = await contract.balanceOf(account);

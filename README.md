@@ -22,6 +22,11 @@ Ecco i file e le cartelle principali che sono stati creati o modificati:
   - **`src/index.css`**: Stili globali con design "Dark Mode" premium.
   - **`package.json`**: Gestione dipendenze (Vite, Ethers, Framer Motion).
 
+### Backend (Node.js + Express)
+- **`backend/`** (Nuovo): Server API per la gestione dei dati e del database.
+  - **`server.js`**: Entry point del server Express.
+  - **`package.json`**: Dipendenze del backend (Express, CORS, Dotenv).
+
 ---
 
 ## 🌟 Nuove Funzionalità (v2.0)
@@ -85,7 +90,40 @@ npm run dev
 Ora apri il link che appare nel terminale (solitamente `http://localhost:5173`).
 Clicca su **"Connect Wallet"** in alto a destra per collegare il tuo Rabby Wallet!
 
-### 4. Versione Mobile (Android) 📱
+### 4. Setup Backend (Server API)
+
+Spostati nella cartella del backend e avvia il server:
+```bash
+cd backend
+npm install
+node server.js
+```
+Il server sarà attivo su `http://localhost:3000`.
+
+### 5. Setup Database (PostgreSQL)
+
+Per far funzionare il backend, devi configurare un database PostgreSQL locale.
+
+1.  **Installa PostgreSQL**:
+    ```bash
+    sudo apt-get install postgresql postgresql-contrib
+    sudo service postgresql start
+    ```
+
+2.  **Crea Utente e Database**:
+    Esegui questi comandi nel terminale:
+    ```bash
+    sudo -u postgres psql -c "CREATE USER cycling_user WITH PASSWORD 'secure_password';"
+    sudo -u postgres psql -c "CREATE DATABASE cycling_token_db OWNER cycling_user;"
+    ```
+
+3.  **Crea la Tabella e Assegna Permessi**:
+    ```bash
+    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0);"
+    sudo -u postgres psql -d cycling_token_db -c "GRANT ALL PRIVILEGES ON TABLE users TO cycling_user;"
+    ```
+
+### 6. Versione Mobile (Android) 📱
 
 Il progetto è pronto per essere trasformato in un'App Android nativa.
 
