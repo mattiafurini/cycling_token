@@ -24,6 +24,20 @@ Ecco i file e le cartelle principali che sono stati creati o modificati:
 
 ---
 
+## 🌟 Nuove Funzionalità (v2.0)
+
+### 1. Lazy Minting & Claiming
+Il sistema non pre-minta più i token. I token vengono creati ("mintati") solo quando un utente li reclama.
+- **Vantaggio**: Supply dinamica che cresce solo con l'attività reale degli utenti.
+
+### 2. Simulazione "Serverless"
+In questa demo, il frontend simula un'architettura client-server completa direttamente nel browser.
+- **Utente**: Clicca su "Start Riding" per accumulare km e token (simulati).
+- **Server (Owner)**: Quando l'utente clicca su "Claim Reward", il wallet connesso (se è l'Owner) firma la transazione e paga le gas fee, simulando il comportamento di un server backend che premia l'utente.
+- **Sicurezza**: Il frontend impedisce a wallet non-owner di eseguire il claim, garantendo che solo il "Server" possa autorizzare il minting.
+
+---
+
 ## 🚀 Guida Rapida: Come Attivare Tutto
 
 Segui questi passaggi per far partire il progetto sul tuo computer.
