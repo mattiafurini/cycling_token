@@ -1,4 +1,4 @@
-export const contractAddress = "0xc7000dA12226894f59100A9BdA9EAB53f285C829";
+export const contractAddress = "0x3ab745350F518595609594955814a8C23D108DB5";
 
 export const contractABI = [
     {
@@ -318,6 +318,37 @@ export const contractABI = [
             }
         ],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     }
 ];

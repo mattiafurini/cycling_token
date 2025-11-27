@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { Wallet, Bike, ArrowRight } from 'lucide-react';
+import { Wallet, Bike, ArrowRight, Timer, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { contractAddress, contractABI } from './config';
 
 function App() {
   const [account, setAccount] = useState(null);
+  const [owner, setOwner] = useState(null);
   const [balance, setBalance] = useState('0');
+  const [pendingReward, setPendingReward] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -72,6 +74,10 @@ function App() {
         const bal = await contract.balanceOf(address);
         setBalance(ethers.formatUnits(bal, 18));
 
+        // Fetch owner
+        const contractOwner = await contract.owner();
+        setOwner(contractOwner);
+
         setLoading(false);
       } catch (error) {
         console.error("Error connecting wallet:", error);
@@ -79,6 +85,44 @@ function App() {
       }
     } else {
       alert("Please install a wallet like Rabby or Metamask!");
+    }
+  };
+
+  const simulateRide = () => {
+    setLoading(true);
+    setTimeout(() => {
+      setPendingReward(prev => prev + 10);
+      setLoading(false);
+    }, 1000);
+  };
+
+  const claimReward = async () => {
+    if (!account) return;
+
+    if (owner && account.toLowerCase() !== owner.toLowerCase()) {
+      alert("Only the contract owner (Server) can process this transaction!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      const tx = await contract.mint(account, ethers.parseUnits(pendingReward.toString(), 18));
+      await tx.wait();
+
+      // Refresh balance
+      const bal = await contract.balanceOf(account);
+      setBalance(ethers.formatUnits(bal, 18));
+      setPendingReward(0);
+      setLoading(false);
+      alert("Reward claimed successfully!");
+    } catch (error) {
+      console.error("Error claiming reward:", error);
+      setLoading(false);
+      alert("Error claiming reward: " + (error.reason || error.message));
     }
   };
 
@@ -109,7 +153,7 @@ function App() {
             Join the revolution of sustainable transport. Track your rides, reduce your carbon footprint, and get rewarded with Cycling Tokens.
           </p>
           <div className="btn-group">
-            <button className="btn-primary">
+            <button className="btn-primary" onClick={simulateRide} disabled={loading}>
               Start Riding <ArrowRight size={20} />
             </button>
             <button className="btn-secondary">
@@ -128,13 +172,29 @@ function App() {
           <div className="card">
             <div className="card-header">
               <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Current Balance</p>
-                <h3 className="balance-amount">{balance} CYCL</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Pending Rewards</p>
+                <h3 className="balance-amount">{pendingReward} CYCL</h3>
               </div>
               <div className="icon-box">
-                <Bike size={32} />
+                <Trophy size={32} />
               </div>
             </div>
+
+            <div className="btn-group" style={{ marginTop: '1.5rem' }}>
+              {pendingReward > 0 && (
+                <button
+                  onClick={claimReward}
+                  className="btn-primary"
+                  disabled={loading}
+                  style={{ flex: 1 }}
+                >
+                  <Wallet size={18} />
+                  <span>Claim Reward</span>
+                </button>
+              )}
+            </div>
+
+            <div className="card-divider"></div>
 
             <div>
               <div className="status-row">
@@ -154,6 +214,8 @@ function App() {
             </div>
           </div>
         </motion.div>
+
+
       </main>
     </div>
   );
