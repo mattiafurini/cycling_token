@@ -120,6 +120,11 @@ function App() {
   const claimReward = async () => {
     if (!account) return;
 
+    if (pendingReward < 50) {
+      alert("You need at least 50 CYCL to claim rewards!");
+      return;
+    }
+
     if (owner && account.toLowerCase() !== owner.toLowerCase()) {
       alert("Only the contract owner (Server) can process this transaction!");
       return;
@@ -211,13 +216,12 @@ function App() {
             <div className="btn-group" style={{ marginTop: '1.5rem' }}>
               {pendingReward > 0 && (
                 <button
-                  onClick={claimReward}
                   className="btn-primary"
-                  disabled={loading}
-                  style={{ flex: 1 }}
+                  onClick={claimReward}
+                  disabled={loading || pendingReward < 50}
+                  style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 50 ? 0.5 : 1 }}
                 >
-                  <Wallet size={18} />
-                  <span>Claim Reward</span>
+                  {loading ? 'Processing...' : (pendingReward < 50 ? `Min 50 CYCL to Claim` : 'Claim Reward')}
                 </button>
               )}
             </div>
