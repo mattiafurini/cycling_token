@@ -11,13 +11,21 @@ describe("CyclingToken", function () {
     beforeEach(async function () {
         [owner, addr1, addr2] = await ethers.getSigners();
         CyclingToken = await ethers.getContractFactory("CyclingToken");
-        // Deploy with 1 million initial supply
+
+        // Deploy con 1 milione di supply iniziale (come prima)
+        // NOTA: Se usi ethers v6, .deployed() è deprecato, usa .waitForDeployment()
+        // Mantengo .deployed() per compatibilità con il tuo codice precedente
         cyclingToken = await CyclingToken.deploy(1000000);
         await cyclingToken.deployed();
     });
 
     describe("Deployment", function () {
         it("Should set the right owner", async function () {
+            // Verifica che l'owner del contratto sia settato correttamente (funzione di Ownable)
+            expect(await cyclingToken.owner()).to.equal(owner.address);
+        });
+
+        it("Should assign the initial supply to the owner", async function () {
             expect(await cyclingToken.balanceOf(owner.address)).to.equal(ethers.utils.parseUnits("1000000", 18));
         });
 
@@ -25,14 +33,30 @@ describe("CyclingToken", function () {
             expect(await cyclingToken.name()).to.equal("CyclingToken");
             expect(await cyclingToken.symbol()).to.equal("CYCL");
         });
+    });
 
-        it("Should assign the total supply to the owner", async function () {
-            const ownerBalance = await cyclingToken.balanceOf(owner.address);
-            expect(await cyclingToken.totalSupply()).to.equal(ownerBalance);
+    describe("Minting (New Feature)", function () {
+        it("Should allow owner to mint tokens to any address", async function () {
+            // Owner minta 100 token per addr1
+            await cyclingToken.mint(addr1.address, ethers.utils.parseUnits("100", 18));
+
+            // Verifica saldo addr1
+            expect(await cyclingToken.balanceOf(addr1.address)).to.equal(ethers.utils.parseUnits("100", 18));
+
+            // Verifica che la Total Supply sia aumentata (1M iniziali + 100 nuovi)
+            expect(await cyclingToken.totalSupply()).to.equal(ethers.utils.parseUnits("1000100", 18));
+        });
+
+        it("Should FAIL if non-owner tries to mint", async function () {
+            // addr1 prova a mintare per se stesso -> DEVE FALLIRE
+            // Ownable lancia l'errore "Ownable: caller is not the owner"
+            await expect(
+                cyclingToken.connect(addr1).mint(addr1.address, ethers.utils.parseUnits("100", 18))
+            ).to.be.revertedWith("Ownable: caller is not the owner").to.be.reverted;
         });
     });
 
-    describe("Transactions", function () {
+    describe("Standard Transactions", function () {
         it("Should transfer tokens between accounts", async function () {
             // Transfer 50 tokens from owner to addr1
             await cyclingToken.transfer(addr1.address, ethers.utils.parseUnits("50", 18));
@@ -51,7 +75,7 @@ describe("CyclingToken", function () {
             // Try to send 1 token from addr1 (0 balance) to owner
             await expect(
                 cyclingToken.connect(addr1).transfer(owner.address, 1)
-            ).to.be.reverted; // ERC20 reverts on insufficient balance, specific error depends on implementation but reverted is guaranteed
+            ).to.be.reverted;
 
             // Owner balance shouldn't have changed
             expect(await cyclingToken.balanceOf(owner.address)).to.equal(initialOwnerBalance);
