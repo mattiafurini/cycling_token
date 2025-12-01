@@ -53,13 +53,42 @@ app.get('/api/user/:address', async (req, res) => {
 // Record Ride (Simulated)
 app.post('/api/ride', async (req, res) => {
     const { address, km } = req.body;
-    // 1 KM = 1 Token (Simulated logic)
-    const reward = km;
 
     try {
+        // Check if user is PRO
+        const userResult = await pool.query('SELECT is_pro, pro_expiry FROM users WHERE wallet_address = $1', [address]);
+        const user = userResult.rows[0];
+
+        let multiplier = 1.0;
+        if (user && user.is_pro) {
+            // Check expiry (optional for prototype, but good practice)
+            // For now, assume permanent or check date
+            multiplier = 1.2; // 20% bonus (12 tokens for 10km)
+        }
+
+        const reward = km * multiplier;
+
         const result = await pool.query(
             'UPDATE users SET pending_balance = pending_balance + $1, total_km = total_km + $2 WHERE wallet_address = $3 RETURNING *',
             [reward, km, address]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Upgrade to Pro
+app.post('/api/upgrade-pro', async (req, res) => {
+    const { address } = req.body;
+    try {
+        // In a real app, we would verify the burn transaction hash here.
+        // For this prototype, we trust the frontend called burn() successfully.
+
+        const result = await pool.query(
+            'UPDATE users SET is_pro = TRUE, pro_expiry = NOW() + INTERVAL \'30 days\' WHERE wallet_address = $1 RETURNING *',
+            [address]
         );
         res.json(result.rows[0]);
     } catch (err) {

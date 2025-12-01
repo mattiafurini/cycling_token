@@ -67,11 +67,13 @@ npx hardhat test
 *Dovresti vedere 5 spunte verdi.*
 
 #### (Opzionale) Deploy su Polygon Amoy
-Se vuoi mettere il contratto online sulla testnet pubblica:
+Il contratto è già stato deployato sulla testnet Polygon Amoy all'indirizzo: `0x4944D1A1d57e118f50B318B039210f53a5c9B7Eb`.
+
+Se vuoi farne uno nuovo:
 1. Crea un file `.env` con la tua `PRIVATE_KEY` e `POLYGON_AMOY_RPC_URL`.
 2. Esegui:
    ```bash
-   npx hardhat run scripts/deploy_amoy.js --network amoy
+   npx hardhat run scripts/deploy.js --network amoy
    ```
 
 ### 3. Setup Frontend (Interfaccia Web)
@@ -119,11 +121,17 @@ Per far funzionare il backend, devi configurare un database PostgreSQL locale.
 
 3.  **Crea la Tabella e Assegna Permessi**:
     ```bash
-    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0);"
+    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0, is_pro BOOLEAN DEFAULT FALSE, pro_expiry TIMESTAMP);"
     sudo -u postgres psql -d cycling_token_db -c "GRANT ALL PRIVILEGES ON TABLE users TO cycling_user;"
     ```
 
-### 6. Versione Mobile (Android) 📱
+### 6. Abbonamento PRO 🏆
+Il sistema include ora un abbonamento "Pro" che offre vantaggi esclusivi:
+- **Costo**: 100 CYCL (bruciati per sempre).
+- **Vantaggio**: +20% di guadagno sui km percorsi (12 CYCL ogni 10km invece di 10).
+- **Attivazione**: Clicca sull'icona della coppa 🏆 nella card principale. Se hai abbastanza token, potrai fare l'upgrade.
+
+### 7. Versione Mobile (Android) 📱
 
 Il progetto è pronto per essere trasformato in un'App Android nativa.
 

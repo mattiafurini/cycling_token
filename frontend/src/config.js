@@ -1,4 +1,5 @@
-export const contractAddress = "0x3ab745350F518595609594955814a8C23D108DB5";
+// This file is automatically updated by the deployment script, but for now we update it manually
+export const contractAddress = "0x4944D1A1d57e118f50B318B039210f53a5c9B7Eb"; // Deployed address
 
 export const contractABI = [
     {
@@ -334,6 +335,19 @@ export const contractABI = [
             }
         ],
         "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "burn",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"

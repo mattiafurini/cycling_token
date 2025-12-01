@@ -9,6 +9,7 @@ function App() {
   const [owner, setOwner] = useState(null);
   const [balance, setBalance] = useState('0');
   const [pendingReward, setPendingReward] = useState(0);
+  const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -83,6 +84,7 @@ function App() {
           const response = await fetch(`http://localhost:3000/api/user/${address}`);
           const userData = await response.json();
           setPendingReward(parseFloat(userData.pending_balance));
+          setIsPro(userData.is_pro);
         } catch (err) {
           console.error("Error fetching user data:", err);
         }
@@ -115,6 +117,52 @@ function App() {
     }
 
     setLoading(false);
+  };
+
+  const upgradeToPro = async () => {
+    if (!account) return;
+
+    const currentBalance = parseFloat(balance);
+    if (currentBalance < 100) {
+      if (currentBalance + pendingReward >= 100) {
+        alert(`You need 100 CYCL. You have ${currentBalance} in wallet and ${pendingReward} pending. Claim your rewards first!`);
+      } else {
+        alert("You need 100 CYCL to upgrade to PRO!");
+      }
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      // Burn 100 tokens
+      const tx = await contract.burn(ethers.parseUnits("100", 18));
+      await tx.wait();
+
+      // Notify backend
+      const response = await fetch('http://localhost:3000/api/upgrade-pro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: account })
+      });
+
+      const userData = await response.json();
+      setIsPro(userData.is_pro);
+
+      // Refresh balance
+      const bal = await contract.balanceOf(account);
+      setBalance(ethers.formatUnits(bal, 18));
+
+      setLoading(false);
+      alert("Upgraded to PRO successfully!");
+    } catch (error) {
+      console.error("Error upgrading:", error);
+      setLoading(false);
+      alert("Error upgrading: " + (error.reason || error.message));
+    }
   };
 
   const claimReward = async () => {
@@ -208,22 +256,41 @@ function App() {
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Pending Rewards</p>
                 <h3 className="balance-amount">{pendingReward} CYCL</h3>
               </div>
-              <div className="icon-box">
-                <Trophy size={32} />
-              </div>
+              <button
+                className="icon-box"
+                onClick={!isPro ? upgradeToPro : null}
+                disabled={loading}
+                style={{
+                  cursor: isPro ? 'default' : 'pointer',
+                  background: isPro ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'rgba(255, 255, 255, 0.1)',
+                  color: isPro ? '#000' : '#fff',
+                  border: isPro ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.5rem',
+                  minWidth: '80px',
+                  height: 'auto',
+                  gap: '4px'
+                }}
+              >
+                <Trophy size={24} />
+                <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+                  {isPro ? 'PRO' : 'GET PRO'}
+                </span>
+              </button>
             </div>
 
             <div className="btn-group" style={{ marginTop: '1.5rem' }}>
-              {pendingReward > 0 && (
-                <button
-                  className="btn-primary"
-                  onClick={claimReward}
-                  disabled={loading || pendingReward < 50}
-                  style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 50 ? 0.5 : 1 }}
-                >
-                  {loading ? 'Processing...' : (pendingReward < 50 ? `Min 50 CYCL to Claim` : 'Claim Reward')}
-                </button>
-              )}
+              <button
+                className="btn-primary"
+                onClick={claimReward}
+                disabled={loading || pendingReward < 50}
+                style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 50 ? 0.5 : 1 }}
+              >
+                {loading ? 'Processing...' : (pendingReward < 50 ? `Min 50 CYCL to Claim` : 'Claim Reward')}
+              </button>
             </div>
 
             <div className="card-divider"></div>
@@ -249,7 +316,7 @@ function App() {
 
 
       </main>
-    </div>
+    </div >
   );
 }
 
