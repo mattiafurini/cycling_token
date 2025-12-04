@@ -1,5 +1,6 @@
 // This file is automatically updated by the deployment script, but for now we update it manually
 export const contractAddress = "0x2AAd40100641dBd6336eDC60832fc237bFe39C95"; // Deployed address
+export const API_URL = "http://192.168.1.125:3000"; // Local IP for Android testing
 
 export const contractABI = [
     {

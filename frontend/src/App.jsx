@@ -2,9 +2,53 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { Wallet, Bike, ArrowRight, Timer, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { contractAddress, contractABI } from './config';
+import { contractAddress, contractABI, API_URL } from './config';
 
-function App() {
+// AppKit Imports
+import { createAppKit } from '@reown/appkit/react'
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { useAppKit, useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
+import { polygonAmoy } from '@reown/appkit/networks'
+import { WagmiProvider } from 'wagmi'
+
+// 1. Get projectId from https://cloud.reown.com
+const projectId = '806973e58b8cc7a0ea58361bb80e8028'
+
+// 2. Create a metadata object
+const metadata = {
+  name: 'CyclingToken',
+  description: 'Bike-to-Earn App',
+  url: 'https://cyclingtoken.app', // origin must match your domain & subdomain
+  icons: ['https://avatars.mywebsite.com/']
+}
+
+// 3. Create the AppKit instance
+// 3. Create the AppKit instance (Wagmi Adapter)
+const wagmiAdapter = new WagmiAdapter({
+  projectId,
+  networks: [polygonAmoy]
+})
+
+createAppKit({
+  adapters: [wagmiAdapter],
+  metadata,
+  networks: [polygonAmoy],
+  projectId,
+  features: {
+    analytics: true
+  },
+  featuredWalletIds: [
+    'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+    '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369'  // Rainbow
+  ]
+})
+
+function MainApp() {
+  // AppKit Hooks
+  const { address, isConnected } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider('eip155')
+  const { open } = useAppKit()
+
   const [account, setAccount] = useState(null);
   const [owner, setOwner] = useState(null);
   const [balance, setBalance] = useState('0');
@@ -12,100 +56,65 @@ function App() {
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Sync AppKit address with local state
   useEffect(() => {
-    const checkConnection = async () => {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) {
-            connectWallet();
-          }
-        } catch (error) {
-          console.error("Error checking connection:", error);
-        }
-      }
-    };
-    checkConnection();
-  }, []);
-
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        setLoading(true);
-        const provider = new ethers.BrowserProvider(window.ethereum);
-
-        const network = await provider.getNetwork();
-        if (network.chainId !== 80002n) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x13882' }],
-            });
-          } catch (switchError) {
-            // This error code indicates that the chain has not been added to MetaMask.
-            if (switchError.code === 4902) {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [
-                  {
-                    chainId: '0x13882',
-                    chainName: 'Polygon Amoy',
-                    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
-                    nativeCurrency: {
-                      name: 'POLYGON',
-                      symbol: 'POL',
-                      decimals: 18
-                    },
-                    blockExplorerUrls: ['https://amoy.polygonscan.com/']
-                  }
-                ],
-              });
-            } else {
-              throw switchError;
-            }
-          }
-        }
-
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        setAccount(address);
-
-        // Here we would fetch the balance from the contract
-        const contract = new ethers.Contract(contractAddress, contractABI, signer);
-        const bal = await contract.balanceOf(address);
-        setBalance(ethers.formatUnits(bal, 18));
-
-        // Fetch owner
-        const contractOwner = await contract.owner();
-        setOwner(contractOwner);
-
-        // Fetch user data from backend
-        try {
-          const response = await fetch(`http://localhost:3000/api/user/${address}`);
-          const userData = await response.json();
-          setPendingReward(parseFloat(userData.pending_balance));
-          setIsPro(userData.is_pro);
-        } catch (err) {
-          console.error("Error fetching user data:", err);
-        }
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error connecting wallet:", error);
-        setLoading(false);
-      }
+    if (isConnected && address) {
+      setAccount(address);
+      connectWallet(address); // Reuse existing logic but pass address
     } else {
-      alert("Please install a wallet like Rabby or Metamask!");
+      setAccount(null);
+    }
+  }, [isConnected, address]);
+
+  const connectWallet = async (userAddress) => {
+    setLoading(true);
+    try {
+      let provider;
+      if (walletProvider) {
+        provider = new ethers.BrowserProvider(walletProvider, 'any')
+      } else {
+        // Fallback or return if no provider
+        return;
+      }
+
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+      // Check Owner
+      const contractOwner = await contract.owner();
+      setOwner(contractOwner);
+
+      // Check Balance
+      const bal = await contract.balanceOf(userAddress);
+      setBalance(ethers.formatUnits(bal, 18));
+
+      // Fetch user data from backend
+      try {
+        const response = await fetch(`${API_URL}/api/user/${userAddress}`);
+        const userData = await response.json();
+        setPendingReward(parseFloat(userData.pending_balance));
+        setIsPro(userData.is_pro);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
+      setLoading(false);
     }
   };
 
   const simulateRide = async () => {
-    if (!account) return;
+    if (!account) {
+      alert("Please connect your wallet first!");
+      return;
+    }
     setLoading(true);
 
     try {
       // Simulate 10km ride
-      const response = await fetch('http://localhost:3000/api/ride', {
+      const response = await fetch(`${API_URL}/api/ride`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: account, km: 10 })
@@ -121,6 +130,10 @@ function App() {
 
   const upgradeToPro = async () => {
     if (!account) return;
+    if (!walletProvider) {
+      alert("Provider not found. Please connect wallet.");
+      return;
+    }
 
     const currentBalance = parseFloat(balance);
     if (currentBalance < 100) {
@@ -134,7 +147,7 @@ function App() {
 
     try {
       setLoading(true);
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(walletProvider, 'any');
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
@@ -143,7 +156,7 @@ function App() {
       await tx.wait();
 
       // Notify backend
-      const response = await fetch('http://localhost:3000/api/upgrade-pro', {
+      const response = await fetch(`${API_URL}/api/upgrade-pro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: account })
@@ -167,25 +180,24 @@ function App() {
 
   const claimReward = async () => {
     if (!account) return;
+    if (!walletProvider) {
+      alert("Provider not found. Please connect wallet.");
+      return;
+    }
 
     if (pendingReward < 50) {
       alert("You need at least 50 CYCL to claim rewards!");
       return;
     }
 
-    if (owner && account.toLowerCase() !== owner.toLowerCase()) {
-      alert("Only the contract owner (Server) can process this transaction!");
-      return;
-    }
-
     try {
       setLoading(true);
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(walletProvider, 'any');
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
       // 1. Fetch pending CIDs from backend
-      const userResponse = await fetch(`http://localhost:3000/api/user/${account}`);
+      const userResponse = await fetch(`${API_URL}/api/user/${account}`);
       const userData = await userResponse.json();
       const pendingCids = userData.pending_cids || [];
 
@@ -199,7 +211,7 @@ function App() {
       await tx.wait();
 
       // 3. Notify backend of success to reset balance
-      await fetch('http://localhost:3000/api/claim-success', {
+      await fetch(`${API_URL}/api/claim-success`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: account })
@@ -225,10 +237,15 @@ function App() {
           <Bike size={32} color="var(--accent-primary)" />
           <span>CyclingToken</span>
         </div>
-        <button onClick={connectWallet} className="btn-connect">
-          <Wallet size={18} color="var(--accent-primary)" />
-          <span>{account ? `${account.substring(0, 6)}...${account.substring(38)}` : "Connect Wallet"}</span>
-        </button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => open()}
+          className="flex items-center space-x-2 bg-gradient-to-r from-neon-green to-emerald-500 text-black px-6 py-3 rounded-full font-bold shadow-lg shadow-neon-green/20 hover:shadow-neon-green/40 transition-all"
+        >
+          <Wallet className="w-5 h-5" />
+          <span>{isConnected ? `${address.substring(0, 6)}...${address.substring(38)}` : "Connect Wallet"}</span>
+        </motion.button>
       </nav>
 
       <main className="container hero">
@@ -331,4 +348,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+      <MainApp />
+    </WagmiProvider>
+  );
+}
