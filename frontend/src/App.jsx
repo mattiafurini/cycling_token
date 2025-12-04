@@ -184,10 +184,21 @@ function App() {
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-      const tx = await contract.mint(account, ethers.parseUnits(pendingReward.toString(), 18));
+      // 1. Fetch pending CIDs from backend
+      const userResponse = await fetch(`http://localhost:3000/api/user/${account}`);
+      const userData = await userResponse.json();
+      const pendingCids = userData.pending_cids || [];
+
+      // For this prototype, we mint a single tokenURI containing all CIDs or just the last one.
+      // A better approach would be to batch mint or create a composite IPFS object.
+      // Let's create a simple JSON on the fly or just use the last CID as proof.
+      const tokenURI = pendingCids.length > 0 ? pendingCids[pendingCids.length - 1] : "ipfs://QmEmpty";
+
+      // 2. Mint with Token URI
+      const tx = await contract.mint(account, ethers.parseUnits(pendingReward.toString(), 18), tokenURI);
       await tx.wait();
 
-      // Notify backend of success to reset balance
+      // 3. Notify backend of success to reset balance
       await fetch('http://localhost:3000/api/claim-success', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -199,7 +210,7 @@ function App() {
       setBalance(ethers.formatUnits(bal, 18));
       setPendingReward(0);
       setLoading(false);
-      alert("Reward claimed successfully!");
+      alert("Reward claimed successfully! Data saved on IPFS.");
     } catch (error) {
       console.error("Error claiming reward:", error);
       setLoading(false);

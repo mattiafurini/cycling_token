@@ -1,5 +1,5 @@
 // This file is automatically updated by the deployment script, but for now we update it manually
-export const contractAddress = "0x4944D1A1d57e118f50B318B039210f53a5c9B7Eb"; // Deployed address
+export const contractAddress = "0x2AAd40100641dBd6336eDC60832fc237bFe39C95"; // Deployed address
 
 export const contractABI = [
     {
@@ -332,6 +332,11 @@ export const contractABI = [
                 "internalType": "uint256",
                 "name": "amount",
                 "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "tokenURI",
+                "type": "string"
             }
         ],
         "name": "mint",
