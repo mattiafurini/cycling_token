@@ -19,14 +19,19 @@ const metadata = {
   name: 'CyclingToken',
   description: 'Bike-to-Earn App',
   url: 'https://cyclingtoken.app', // origin must match your domain & subdomain
-  icons: ['https://avatars.mywebsite.com/']
+  icons: ['https://avatars.mywebsite.com/'],
+  redirect: {
+    native: 'cyclingtoken://app',
+    universal: 'https://cyclingtoken.app'
+  }
 }
 
 // 3. Create the AppKit instance
 // 3. Create the AppKit instance (Wagmi Adapter)
 const wagmiAdapter = new WagmiAdapter({
   projectId,
-  networks: [polygonAmoy]
+  networks: [polygonAmoy],
+  metadata
 })
 
 createAppKit({
