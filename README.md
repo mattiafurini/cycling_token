@@ -175,3 +175,13 @@ Il progetto è pronto per essere trasformato in un'App Android nativa.
 ## 📝 Note per lo Sviluppo
 - **Design**: L'interfaccia usa CSS puro con variabili per un look moderno e facile da modificare.
 - **Compatibilità**: Il progetto è configurato per funzionare con Node.js v18 (LTS).
+
+## 🔮 Roadmap: Sicurezza e Recupero Dati (Future Implementation)
+Per garantire la totale resilienza dei dati anche in caso di crash del database centrale, è prevista l'implementazione di un sistema di **Disaster Recovery**:
+1.  **Fonte di Verità**: La Blockchain (per l'ultimo timestamp di Claim) e IPFS (per i dati grezzi).
+2.  **Algoritmo di Recupero**:
+    - Lo script interroga lo Smart Contract per sapere quando l'utente ha fatto l'ultimo `mint`.
+    - Scarica tutti i file JSON dell'utente da Pinata.
+    - Filtra solo le corse con timestamp successivo all'ultimo Claim.
+    - Ricostruisce il saldo pendente nel database senza duplicazioni.
+Questo renderà il sistema "incorruttibile" e indipendente dallo stato del server.
