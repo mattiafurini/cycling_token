@@ -50,32 +50,83 @@ app.get('/api/user/:address', async (req, res) => {
     }
 });
 
-// Record Ride (Simulated)
+const axios = require('axios');
+const FormData = require('form-data');
+
+// ... (previous code)
+
+// Helper function to upload to Pinata
+async function uploadToPinata(data) {
+    const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
+
+    // If using JWT (Recommended)
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.PINATA_JWT}`
+    };
+
+    // If using API Key/Secret (Alternative)
+    // const headers = {
+    //     'Content-Type': 'application/json',
+    //     'pinata_api_key': process.env.PINATA_API_KEY,
+    //     'pinata_secret_api_key': process.env.PINATA_SECRET_KEY
+    // };
+
+    try {
+        const response = await axios.post(url, data, { headers });
+        return response.data.IpfsHash;
+    } catch (error) {
+        console.error("Pinata Upload Error:", error.response ? error.response.data : error.message);
+        throw error;
+    }
+}
+
+// Record Ride (IPFS Version)
 app.post('/api/ride', async (req, res) => {
     const { address, km } = req.body;
 
     try {
-        // Check if user is PRO
+        // 1. Check Pro Status
         const userResult = await pool.query('SELECT is_pro, pro_expiry FROM users WHERE wallet_address = $1', [address]);
         const user = userResult.rows[0];
 
         let multiplier = 1.0;
         if (user && user.is_pro) {
-            // Check expiry (optional for prototype, but good practice)
-            // For now, assume permanent or check date
-            multiplier = 1.2; // 20% bonus (12 tokens for 10km)
+            multiplier = 1.2;
         }
 
         const reward = km * multiplier;
 
+        // 2. Prepare Metadata for IPFS
+        const rideData = {
+            user: address,
+            km: km,
+            reward: reward,
+            timestamp: Date.now(),
+            type: "Cycling Session",
+            app: "CyclingToken v2"
+        };
+
+        // 3. Upload to IPFS
+        const cid = await uploadToPinata(rideData);
+        console.log(`Ride saved to IPFS: ${cid}`);
+
+        // 4. Update Database (Store Pending Balance + CID)
+        // We append the new CID to the array of pending_cids
         const result = await pool.query(
-            'UPDATE users SET pending_balance = pending_balance + $1, total_km = total_km + $2 WHERE wallet_address = $3 RETURNING *',
-            [reward, km, address]
+            `UPDATE users 
+             SET pending_balance = pending_balance + $1, 
+                 total_km = total_km + $2,
+                 pending_cids = array_append(pending_cids, $3)
+             WHERE wallet_address = $4 
+             RETURNING *`,
+            [reward, km, cid, address]
         );
-        res.json(result.rows[0]);
+
+        res.json({ ...result.rows[0], latest_cid: cid });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Database error' });
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -97,12 +148,12 @@ app.post('/api/upgrade-pro', async (req, res) => {
     }
 });
 
-// Claim Success (Reset Pending Balance)
+// Claim Success (Reset Pending Balance & CIDs)
 app.post('/api/claim-success', async (req, res) => {
     const { address } = req.body;
     try {
         const result = await pool.query(
-            'UPDATE users SET pending_balance = 0 WHERE wallet_address = $1 RETURNING *',
+            'UPDATE users SET pending_balance = 0, pending_cids = \'{}\' WHERE wallet_address = $1 RETURNING *',
             [address]
         );
         res.json(result.rows[0]);

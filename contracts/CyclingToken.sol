@@ -18,9 +18,12 @@ contract CyclingToken is ERC20, Ownable, ERC20Burnable {
         }
     }
 
+    event RideMinted(address indexed user, uint256 amount, string cid);
+
     // Funzione MINT: Crea nuovi token dal nulla
     // "onlyOwner" significa che SOLO il wallet che ha deployato il contratto può chiamarla
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount, string memory tokenURI) public onlyOwner {
         _mint(to, amount);
+        emit RideMinted(to, amount, tokenURI);
     }
 }

@@ -35,11 +35,16 @@ Ecco i file e le cartelle principali che sono stati creati o modificati:
 Il sistema non pre-minta più i token. I token vengono creati ("mintati") solo quando un utente li reclama.
 - **Vantaggio**: Supply dinamica che cresce solo con l'attività reale degli utenti.
 
-### 2. Simulazione "Serverless"
+### 2. Architettura Ibrida (IPFS + Blockchain)
+Per ridurre i costi del gas e mantenere i dati decentralizzati, il progetto usa un approccio ibrido:
+- **Dati Off-Chain (IPFS)**: I dettagli della corsa (coordinate GPS, timestamp, km esatti) vengono salvati su IPFS tramite **Pinata**. Questo garantisce che i dati siano immutabili e accessibili pubblicamente senza intasare la Blockchain.
+- **Dati On-Chain (Polygon)**: Lo Smart Contract salva solo il **CID** (Content Identifier) di IPFS. Questo funge da "impronta digitale" che collega in modo sicuro i token ricevuti ai dati reali della performance sportiva.
+
+### 3. Simulazione "Serverless"
 In questa demo, il frontend simula un'architettura client-server completa direttamente nel browser.
-- **Utente**: Clicca su "Start Riding" per accumulare km e token (simulati).
-- **Server (Owner)**: Quando l'utente clicca su "Claim Reward", il wallet connesso (se è l'Owner) firma la transazione e paga le gas fee, simulando il comportamento di un server backend che premia l'utente.
-- **Sicurezza**: Il frontend impedisce a wallet non-owner di eseguire il claim, garantendo che solo il "Server" possa autorizzare il minting.
+- **Utente**: Clicca su "Start Riding" per accumulare km. Il backend carica i dati su IPFS.
+- **Server (Owner)**: Quando l'utente clicca su "Claim Reward", il wallet connesso (se è l'Owner) firma la transazione di minting passando il CID di IPFS.
+- **Sicurezza**: Il frontend impedisce a wallet non-owner di eseguire il claim.
 
 ---
 
@@ -92,12 +97,25 @@ npm run dev
 Ora apri il link che appare nel terminale (solitamente `http://localhost:5173`).
 Clicca su **"Connect Wallet"** in alto a destra per collegare il tuo Rabby Wallet!
 
-### 4. Setup Backend (Server API)
+### 5. Setup Backend (Server API)
 
 Spostati nella cartella del backend e avvia il server:
 ```bash
 cd backend
 npm install
+```
+
+#### Configurazione Pinata (IPFS)
+Per far funzionare il caricamento su IPFS:
+1. Registrati su [Pinata](https://www.pinata.cloud/).
+2. Crea una API Key (o usa il JWT).
+3. Aggiungi la chiave al file `.env` nel backend:
+   ```env
+   PINATA_JWT=tua_chiave_jwt_lunghissima
+   ```
+
+Avvia il server:
+```bash
 node server.js
 ```
 Il server sarà attivo su `http://localhost:3000`.
@@ -121,7 +139,7 @@ Per far funzionare il backend, devi configurare un database PostgreSQL locale.
 
 3.  **Crea la Tabella e Assegna Permessi**:
     ```bash
-    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0, is_pro BOOLEAN DEFAULT FALSE, pro_expiry TIMESTAMP);"
+    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0, is_pro BOOLEAN DEFAULT FALSE, pro_expiry TIMESTAMP, pending_cids TEXT[] DEFAULT '{}');"
     sudo -u postgres psql -d cycling_token_db -c "GRANT ALL PRIVILEGES ON TABLE users TO cycling_user;"
     ```
 
