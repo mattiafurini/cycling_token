@@ -246,7 +246,7 @@ function MainApp() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => open()}
-          className="flex items-center space-x-2 bg-gradient-to-r from-neon-green to-emerald-500 text-black px-6 py-3 rounded-full font-bold shadow-lg shadow-neon-green/20 hover:shadow-neon-green/40 transition-all"
+          className="btn-connect"
         >
           <Wallet className="w-5 h-5" />
           <span>{isConnected ? `${address.substring(0, 6)}...${address.substring(38)}` : "Connect Wallet"}</span>
