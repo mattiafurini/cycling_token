@@ -1,6 +1,7 @@
 // This file is automatically updated by the deployment script, but for now we update it manually
 export const contractAddress = "0x2AAd40100641dBd6336eDC60832fc237bFe39C95"; // Deployed address
-export const API_URL = "http://192.168.1.125:3000"; // Local IP for Android testing
+export const API_URL = "http://10.201.69.98:3000"; // Local IP for Android testing
+export const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIxOThkNzBjYy01ZDkyLTQyNmMtYTJkZS02NjQyMjdkZjE4YTMiLCJlbWFpbCI6Im1hdHRpYS5mdXJpbmlAc3R1ZGlvLnVuaWJvLml0IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6ImM5YTIzZmQ4NDA3NThkYjZmNjRhIiwic2NvcGVkS2V5U2VjcmV0IjoiMmJjODAwOTQwOTBmZmEyOGMyMWQ0N2VkMDY5ZjYxYWZhZTBjNTMxNDI1ZTQ2NDMyZmEyNDcxMTk4MTVlMWUzNSIsImV4cCI6MTc5NjM4NDc1NX0.Y_vUv-RgVWISVcQsaKpq9v09mfWhQBl6qfaT3_nHLEM";
 
 export const contractABI = [
     {

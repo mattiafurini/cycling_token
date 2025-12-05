@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { Wallet, Bike, ArrowRight, Timer, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { contractAddress, contractABI, API_URL } from './config';
+import { RideService } from './services/RideService';
 
 // AppKit Imports
 import { createAppKit } from '@reown/appkit/react'
@@ -97,10 +98,45 @@ function MainApp() {
       try {
         const response = await fetch(`${API_URL}/api/user/${userAddress}`);
         const userData = await response.json();
-        setPendingReward(parseFloat(userData.pending_balance));
-        setIsPro(userData.is_pro);
+
+        let totalPending = parseFloat(userData.pending_balance);
+        const userIsPro = userData.is_pro;
+        setIsPro(userIsPro);
+
+        // Calculate offline rewards
+        const localRides = await RideService.getLocalRides();
+        // Filter rides for this address only
+        const myLocalRides = localRides.filter(r => r.address === userAddress);
+
+        let localReward = 0;
+        for (const ride of myLocalRides) {
+          // Use the same logic as simulateRide: 1.2 for Pro, 1.0 for others
+          // Ideally we should have stored the reward in the ride object, but recalculating is fine for now
+          const multiplier = userIsPro ? 1.2 : 1.0;
+          localReward += (ride.km * multiplier);
+        }
+
+        if (localReward > 0) {
+          console.log(`Adding ${localReward} CYCL from offline rides to display.`);
+          totalPending += localReward;
+        }
+
+        setPendingReward(totalPending);
       } catch (err) {
         console.error("Error fetching user data:", err);
+        // If server is offline, we still want to show local rewards!
+        const localRides = await RideService.getLocalRides();
+        const myLocalRides = localRides.filter(r => r.address === userAddress);
+        // We might not know if user is PRO if offline, assume standard rate or check local storage if we cached it (not implemented yet)
+        // For safety, assume standard rate 1.0 if offline
+        let localReward = 0;
+        for (const ride of myLocalRides) {
+          localReward += ride.km;
+        }
+        if (localReward > 0) {
+          setPendingReward(localReward);
+          alert("Server offline. Showing local rewards only.");
+        }
       }
 
       setLoading(false);
@@ -110,6 +146,47 @@ function MainApp() {
     }
   };
 
+  // Sync pending rides on mount
+  useEffect(() => {
+    const syncRides = async () => {
+      const localRides = await RideService.getLocalRides();
+      if (localRides.length > 0) {
+        console.log(`Found ${localRides.length} pending rides. Syncing...`);
+      }
+
+      for (const ride of localRides) {
+        try {
+          // Try to upload to Pinata if not already done (optimization: check if ride has cid?)
+          // For now, we just re-upload or upload. RideService.uploadToPinata handles it.
+          const cid = await RideService.uploadToPinata(ride);
+
+          // Notify backend using the standard endpoint
+          // Note: Backend will generate its own IPFS file, which is fine for redundancy.
+          await fetch(`${API_URL}/api/ride`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              address: ride.address,
+              km: ride.km
+            })
+          });
+
+          // Remove from local storage on success
+          await RideService.removeLocalRide(ride.timestamp);
+          console.log(`Synced ride from ${ride.timestamp}`);
+        } catch (err) {
+          console.error(`Failed to sync ride ${ride.timestamp}:`, err);
+          // If it's a network error, we just keep it for next time
+        }
+      }
+    };
+
+    // Run sync only if connected
+    if (isConnected) {
+      syncRides();
+    }
+  }, [isConnected]);
+
   const simulateRide = async () => {
     if (!account) {
       alert("Please connect your wallet first!");
@@ -117,17 +194,68 @@ function MainApp() {
     }
     setLoading(true);
 
+    const km = 10;
+    const rideData = {
+      address: account,
+      km: km,
+      timestamp: Date.now(),
+      device: 'android_sim'
+    };
+
+    // 1. Calculate Reward Locally (Offline Feedback)
+    // Base rate: 1 CYCL/km. Pro rate: 1.2 CYCL/km.
+    const multiplier = isPro ? 1.2 : 1.0;
+    const estimatedReward = km * multiplier;
+
     try {
-      // Simulate 10km ride
-      const response = await fetch(`${API_URL}/api/ride`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: account, km: 10 })
-      });
-      const userData = await response.json();
-      setPendingReward(parseFloat(userData.pending_balance));
+      // 2. Save locally immediately (Source of Truth for Offline)
+      await RideService.saveRideLocal(rideData);
+
+      // 3. Update UI Immediately
+      setPendingReward(prev => prev + estimatedReward);
+
+      // 4. Try Pinata Upload (Best Effort)
+      let cid = null;
+      let pinataSuccess = false;
+      try {
+        cid = await RideService.uploadToPinata(rideData);
+        pinataSuccess = true;
+      } catch (uploadError) {
+        console.warn("Pinata upload failed (Offline):", uploadError);
+      }
+
+      // 5. Try Backend Sync (Best Effort)
+      try {
+        const response = await fetch(`${API_URL}/api/ride`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...rideData, cid })
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          // Update with server truth if available
+          setPendingReward(parseFloat(userData.pending_balance));
+
+          // Remove local copy since server has it
+          await RideService.removeLocalRide(rideData.timestamp);
+          alert("Ride saved and synced to Server!");
+        } else {
+          throw new Error("Server returned " + response.status);
+        }
+      } catch (backendError) {
+        console.warn("Backend sync failed (Offline):", backendError);
+        // Do NOT alert user with error. Show success message for offline save.
+        if (pinataSuccess) {
+          alert("Ride saved to IPFS! (Server offline, will sync later)");
+        } else {
+          alert("Ride saved locally! (Offline mode)");
+        }
+      }
+
     } catch (err) {
-      console.error("Error simulating ride:", err);
+      console.error("Critical error saving ride:", err);
+      alert("Error recording ride: " + err.message);
     }
 
     setLoading(false);
