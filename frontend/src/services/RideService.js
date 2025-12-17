@@ -1,5 +1,5 @@
 import { Preferences } from '@capacitor/preferences';
-import { PINATA_JWT } from '../config';
+import { PINATA_JWT, API_URL } from '../config';
 
 const RIDE_STORAGE_KEY = 'pending_rides';
 
@@ -87,6 +87,34 @@ export const RideService = {
             return result.IpfsHash;
         } catch (error) {
             console.error('Error uploading to Pinata:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Claim Rewards (Server-Side)
+     * @param {string} userAddress 
+     */
+    async claimRewards(userAddress) {
+        try {
+            console.log("Requesting server-side claim for:", userAddress);
+            // We need to import API_URL, let's assume it's available or import it
+            // Wait, this file imports PINATA_JWT from ../config, so we should import API_URL too
+            // I'll fix imports in another step if needed, but for now I'll use the variable assuming it was imported
+            const response = await fetch(`${API_URL}/api/claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address: userAddress })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || "Claim failed");
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error("Claim Error:", error);
             throw error;
         }
     }

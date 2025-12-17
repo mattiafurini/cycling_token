@@ -1,0 +1,9 @@
+nohup: ignoring input
+Blockchain Wallet Connected: 0x4d5b42848493aD561b8C5508eC89A2E33C843C2a
+Server running on port 3000
+Connected to PostgreSQL database
+Processing Claim for 0xf7E81EBd17D36B1670552960eA181b1FC6D56CcE: 50 CYCL
+Verifying 5 rides on IPFS...
+IPFS Verification Passed ✅
+Mint Transaction Sent: 0x55dbea8878adb5439479aa96c64b52a26ed132f479024ed186d78a62e78fa6fe
+Mint Confirmed: Block 30692041

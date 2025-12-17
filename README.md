@@ -29,90 +29,74 @@ Ecco i file e le cartelle principali che sono stati creati o modificati:
 
 ---
 
-## 🌟 Nuove Funzionalità (v2.0)
+## 🌟 Nuove Funzionalità (v2.1 - Server-Side Minting)
 
-### 1. Lazy Minting & Claiming
-Il sistema non pre-minta più i token. I token vengono creati ("mintati") solo quando un utente li reclama.
-- **Vantaggio**: Supply dinamica che cresce solo con l'attività reale degli utenti.
+### 1. Gasless Claiming (Server-Side Minting)
+L'utente non deve più pagare le fee del gas per reclamare i token.
+- **Frontend**: Invia una richiesta di claim al server.
+- **Server**: Verifica i dati e "minta" i token direttamente nel wallet dell'utente pagando il gas.
+- **Vantaggio**: Esperienza utente fluida (nessun popup di firma) e zero costi per l'utente finale.
 
-### 2. Architettura Ibrida (IPFS + Blockchain)
-Per ridurre i costi del gas e mantenere i dati decentralizzati, il progetto usa un approccio ibrido:
-- **Dati Off-Chain (IPFS)**: I dettagli della corsa (coordinate GPS, timestamp, km esatti) vengono salvati su IPFS tramite **Pinata**. Questo garantisce che i dati siano immutabili e accessibili pubblicamente senza intasare la Blockchain.
-- **Dati On-Chain (Polygon)**: Lo Smart Contract salva solo il **CID** (Content Identifier) di IPFS. Questo funge da "impronta digitale" che collega in modo sicuro i token ricevuti ai dati reali della performance sportiva.
+### 2. Verifica Dati IPFS (Security) 🔒
+Prima di mintare i token, il server esegue un controllo di sicurezza rigoroso:
+1.  **Scarica** i dati grezzi delle corse da IPFS (Pinata).
+2.  **Ricalcola** indipendentemente la somma dei premi previsti.
+3.  **Confronta** il totale calcolato con il saldo pendente nel database.
+4.  Se i due valori non coincidono, la transazione viene bloccata.
+Questo garantisce che **ogni token mintato sia supportato da dati reali e immutabili su IPFS**.
 
-### 3. Simulazione "Serverless"
-In questa demo, il frontend simula un'architettura client-server completa direttamente nel browser.
-- **Utente**: Clicca su "Start Riding" per accumulare km. Il backend carica i dati su IPFS.
-- **Server (Owner)**: Quando l'utente clicca su "Claim Reward", il wallet connesso (se è l'Owner) firma la transazione di minting passando il CID di IPFS.
-- **Sicurezza**: Il frontend impedisce a wallet non-owner di eseguire il claim.
+### 3. Architettura Ibrida (IPFS + Blockchain)
+Per ridurre i costi del gas e mantenere i dati decentralizzati:
+- **Dati Off-Chain (IPFS)**: I dettagli della corsa vengono salvati su IPFS tramite il Backend.
+- **Dati On-Chain (Polygon)**: Lo Smart Contract salva il CID (Content Identifier) come prova del lavoro svolto.
 
 ---
 
 ## 🚀 Guida Rapida: Come Attivare Tutto
 
-Segui questi passaggi per far partire il progetto sul tuo computer.
-
 ### 1. Prerequisiti
 Assicurati di avere installato:
 - Node.js (v18 o superiore)
 - Un Wallet (Rabby o MetaMask) installato nel browser.
+- PostgreSQL installato e attivo.
 
-### 2. Setup Smart Contracts (Backend)
+### 2. Setup Database (PostgreSQL)
+1.  **Crea Utente e Database**:
+    ```bash
+    sudo -u postgres psql -c "CREATE USER cycling_user WITH PASSWORD 'secure_password';"
+    sudo -u postgres psql -c "CREATE DATABASE cycling_token_db OWNER cycling_user;"
+    ```
+2.  **Crea le Tabelle**:
+    ```bash
+    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0, is_pro BOOLEAN DEFAULT FALSE, pro_expiry TIMESTAMP, pending_cids TEXT[] DEFAULT '{}');"
+    sudo -u postgres psql -d cycling_token_db -c "GRANT ALL PRIVILEGES ON TABLE users TO cycling_user;"
+    ```
 
-Installa le dipendenze nella cartella principale:
-```bash
-npm install
-```
-
-#### Eseguire i Test (Consigliato)
-Verifica che il contratto funzioni correttamente eseguendo i test locali:
-```bash
-npx hardhat test
-```
-*Dovresti vedere 5 spunte verdi.*
-
-#### (Opzionale) Deploy su Polygon Amoy
-Il contratto è già stato deployato sulla testnet Polygon Amoy all'indirizzo: `0x4944D1A1d57e118f50B318B039210f53a5c9B7Eb`.
-
-Se vuoi farne uno nuovo:
-1. Crea un file `.env` con la tua `PRIVATE_KEY` e `POLYGON_AMOY_RPC_URL`.
-2. Esegui:
-   ```bash
-   npx hardhat run scripts/deploy.js --network amoy
-   ```
-
-### 3. Setup Frontend (Interfaccia Web)
-
-Spostati nella cartella del frontend e installa le librerie:
-```bash
-cd frontend
-npm install
-```
-
-Avvia il server di sviluppo:
-```bash
-npm run dev
-```
-
-Ora apri il link che appare nel terminale (solitamente `http://localhost:5173`).
-Clicca su **"Connect Wallet"** in alto a destra per collegare il tuo Rabby Wallet!
-
-### 5. Setup Backend (Server API)
-
-Spostati nella cartella del backend e avvia il server:
+### 3. Setup Backend (Server API)
+Spostati nella cartella del backend:
 ```bash
 cd backend
 npm install
 ```
 
-#### Configurazione Pinata (IPFS)
-Per far funzionare il caricamento su IPFS:
-1. Registrati su [Pinata](https://www.pinata.cloud/).
-2. Crea una API Key (o usa il JWT).
-3. Aggiungi la chiave al file `.env` nel backend:
-   ```env
-   PINATA_JWT=tua_chiave_jwt_lunghissima
-   ```
+#### Configurazione `.env`
+Crea un file `.env` nella cartella `backend/` con i seguenti dati (CRITICO):
+```env
+# Database
+DB_USER=cycling_user
+DB_HOST=localhost
+DB_NAME=cycling_token_db
+DB_PASSWORD=secure_password
+DB_PORT=5432
+
+# Blockchain (Il Server paga il Gas!)
+RPC_URL=https://rpc-amoy.polygon.technology/
+PRIVATE_KEY=tua_chiave_privata_del_wallet_owner
+CONTRACT_ADDRESS=0x2AAd40100641dBd6336eDC60832fc237bFe39C95
+
+# IPFS
+PINATA_JWT=tua_chiave_jwt_lunghissima
+```
 
 Avvia il server:
 ```bash
@@ -120,55 +104,23 @@ node server.js
 ```
 Il server sarà attivo su `http://localhost:3000`.
 
-### 5. Setup Database (PostgreSQL)
-
-Per far funzionare il backend, devi configurare un database PostgreSQL locale.
-
-1.  **Installa PostgreSQL**:
-    ```bash
-    sudo apt-get install postgresql postgresql-contrib
-    sudo service postgresql start
-    ```
-
-2.  **Crea Utente e Database**:
-    Esegui questi comandi nel terminale:
-    ```bash
-    sudo -u postgres psql -c "CREATE USER cycling_user WITH PASSWORD 'secure_password';"
-    sudo -u postgres psql -c "CREATE DATABASE cycling_token_db OWNER cycling_user;"
-    ```
-
-3.  **Crea la Tabella e Assegna Permessi**:
-    ```bash
-    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0, is_pro BOOLEAN DEFAULT FALSE, pro_expiry TIMESTAMP, pending_cids TEXT[] DEFAULT '{}');"
-    sudo -u postgres psql -d cycling_token_db -c "GRANT ALL PRIVILEGES ON TABLE users TO cycling_user;"
-    ```
-
-### 6. Abbonamento PRO 🏆
-Il sistema include ora un abbonamento "Pro" che offre vantaggi esclusivi:
-- **Costo**: 100 CYCL (bruciati per sempre).
-- **Vantaggio**: +20% di guadagno sui km percorsi (12 CYCL ogni 10km invece di 10).
-- **Attivazione**: Clicca sull'icona della coppa 🏆 nella card principale. Se hai abbastanza token, potrai fare l'upgrade.
-
-### 7. Versione Mobile (Android) 📱
-
-Il progetto è pronto per essere trasformato in un'App Android nativa.
-
-1. **Installa Android Studio**: Scaricalo dal sito ufficiale.
-2. **Apri il progetto**:
-   - Apri Android Studio.
-   - Seleziona "Open" e naviga nella cartella `cycling_token/frontend/android`.
-3. **Genera l'APK**:
-   - Attendi che Gradle finisca la sincronizzazione.
-   - Vai su `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
-   - Troverai il file `.apk` nella cartella di output (Android Studio ti mostrerà una notifica "locate").
-4. **Installa sul telefono**: Invia il file `.apk` al tuo telefono e installalo!
+### 4. Setup Frontend (Interfaccia Web)
+Spostati nella cartella del frontend:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Apri `http://localhost:5173`, connetti il wallet e inizia a pedalare!
 
 ---
 
 ## 🛠 Tecnologie Usate
-- **Blockchain**: Solidity, Hardhat, Ethers.js v6
-- **Frontend**: React 19, Vite, Framer Motion (Animazioni), Lucide React (Icone)
-- **Network**: Hardhat Localhost (Sviluppo), Polygon Amoy (Testnet)
+- **Blockchain**: Solidity, Hardhat, Ethers.js
+- **Server**: Node.js, Express, pg (PostgreSQL)
+- **Frontend**: React 19, Vite, Reown AppKit (WalletConnect)
+- **Storage**: Pinata (IPFS)
+- **Network**: Polygon Amoy (Testnet)
 
 ---
 
@@ -176,12 +128,6 @@ Il progetto è pronto per essere trasformato in un'App Android nativa.
 - **Design**: L'interfaccia usa CSS puro con variabili per un look moderno e facile da modificare.
 - **Compatibilità**: Il progetto è configurato per funzionare con Node.js v18 (LTS).
 
-## 🔮 Roadmap: Sicurezza e Recupero Dati (Future Implementation)
-Per garantire la totale resilienza dei dati anche in caso di crash del database centrale, è prevista l'implementazione di un sistema di **Disaster Recovery**:
-1.  **Fonte di Verità**: La Blockchain (per l'ultimo timestamp di Claim) e IPFS (per i dati grezzi).
-2.  **Algoritmo di Recupero**:
-    - Lo script interroga lo Smart Contract per sapere quando l'utente ha fatto l'ultimo `mint`.
-    - Scarica tutti i file JSON dell'utente da Pinata.
-    - Filtra solo le corse con timestamp successivo all'ultimo Claim.
-    - Ricostruisce il saldo pendente nel database senza duplicazioni.
-Questo renderà il sistema "incorruttibile" e indipendente dallo stato del server.
+## 🔮 Roadmap
+- **Disaster Recovery**: Ricostruzione automatica del DB partendo dai dati on-chain e IPFS.
+- **Mobile App**: Deploy della versione Android già configurata in `frontend/android`.

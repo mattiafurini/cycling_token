@@ -3,9 +3,32 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { Pool } = require('pg');
+const { ethers } = require('ethers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Blockchain Configuration
+const RPC_URL = process.env.RPC_URL || "https://rpc-amoy.polygon.technology/";
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+
+// ABI for Minting (Minimal)
+const MINT_ABI = [
+    "function mint(address to, uint256 amount, string memory tokenURI) public"
+];
+
+let contract;
+let wallet;
+
+try {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+    contract = new ethers.Contract(CONTRACT_ADDRESS, MINT_ABI, wallet);
+    console.log("Blockchain Wallet Connected:", wallet.address);
+} catch (e) {
+    console.error("Blockchain Connection Error:", e.message);
+}
 
 // Database Connection
 const pool = new Pool({
@@ -26,6 +49,118 @@ pool.connect((err, client, release) => {
 
 app.use(cors());
 app.use(express.json());
+
+// API Endpoints
+
+// Helper to verify IPFS data integrity
+async function verifyIpfsData(cids) {
+    if (!cids || cids.length === 0) return 0;
+
+    console.log(`Verifying ${cids.length} rides on IPFS...`);
+
+    // Fetch all CIDs in parallel
+    const promises = cids.map(async (cid) => {
+        // List of gateways to try
+        const gateways = [
+            `https://gateway.pinata.cloud/ipfs/${cid}`,
+            `https://ipfs.io/ipfs/${cid}`,
+            `https://dweb.link/ipfs/${cid}`
+        ];
+
+        for (const url of gateways) {
+            try {
+                const response = await axios.get(url, { timeout: 10000 }); // Increased timeout to 10s
+                const data = response.data;
+
+                // Validate structure
+                if (data && typeof data.reward === 'number') {
+                    return data.reward;
+                }
+            } catch (err) {
+                // Warning only, try next gateway
+                // console.warn(`Failed to fetch ${url}: ${err.message}`);
+            }
+        }
+
+        console.error(`Failed to fetch CID ${cid} from ALL gateways.`);
+        return 0;
+    });
+
+    const rewards = await Promise.all(promises);
+    const total = rewards.reduce((acc, curr) => acc + curr, 0);
+    return total;
+}
+
+// Server-Side Claim (Minting)
+app.post('/api/claim', async (req, res) => {
+    const { address } = req.body;
+
+    if (!address) {
+        return res.status(400).json({ error: "Address is required" });
+    }
+
+    try {
+        // 1. Get Pending Balance
+        const userResult = await pool.query('SELECT pending_balance, pending_cids FROM users WHERE wallet_address = $1', [address]);
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const user = userResult.rows[0];
+        const pendingAmount = parseFloat(user.pending_balance);
+
+        if (pendingAmount <= 0) {
+            return res.status(400).json({ error: "No pending rewards to claim" });
+        }
+
+        console.log(`Processing Claim for ${address}: ${pendingAmount} CYCL`);
+
+        // 2. SECURITY CHECK: Verify IPFS Data
+        const cids = user.pending_cids || [];
+        const verifiedAmount = await verifyIpfsData(cids);
+
+        // Allow a small floating point tolerance
+        const difference = Math.abs(verifiedAmount - pendingAmount);
+        if (difference > 0.01) {
+            console.error(`SECURITY ALERT: Mismatch! DB says ${pendingAmount}, IPFS says ${verifiedAmount}`);
+            return res.status(400).json({
+                error: "Data Verification Failed",
+                details: `Database record (${pendingAmount}) does not match IPFS data (${verifiedAmount}). Claim rejected for security.`
+            });
+        }
+        console.log("IPFS Verification Passed ✅");
+
+        // 3. Prepare Metadata URI
+        const latestCid = cids.length > 0 ? cids[cids.length - 1] : "";
+        const tokenURI = latestCid ? `ipfs://${latestCid}` : "ipfs://generic-ride-reward";
+
+        // 4. Mint Tokens on Blockchain
+        const amountWei = ethers.parseUnits(pendingAmount.toString(), 18);
+        const tx = await contract.mint(address, amountWei, tokenURI);
+        console.log(`Mint Transaction Sent: ${tx.hash}`);
+
+        const receipt = await tx.wait();
+        console.log(`Mint Confirmed: Block ${receipt.blockNumber}`);
+
+        // 5. Update Database
+        const updateResult = await pool.query(
+            'UPDATE users SET pending_balance = 0, pending_cids = \'{}\' WHERE wallet_address = $1 RETURNING *',
+            [address]
+        );
+
+        res.json({
+            success: true,
+            txHash: tx.hash,
+            amount: pendingAmount,
+            user: updateResult.rows[0]
+        });
+
+    } catch (err) {
+        console.error("Claim Error:", err);
+        res.status(500).json({ error: 'Server error processing claim', details: err.message });
+    }
+});
 
 // API Endpoints
 

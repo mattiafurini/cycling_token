@@ -214,22 +214,22 @@ function MainApp() {
       // 3. Update UI Immediately
       setPendingReward(prev => prev + estimatedReward);
 
-      // 4. Try Pinata Upload (Best Effort)
+      // 4. Try Pinata Upload (OFF - Server handles this now)
       let cid = null;
       let pinataSuccess = false;
-      try {
-        cid = await RideService.uploadToPinata(rideData);
-        pinataSuccess = true;
-      } catch (uploadError) {
-        console.warn("Pinata upload failed (Offline):", uploadError);
-      }
+      // try {
+      //   cid = await RideService.uploadToPinata(rideData);
+      //   pinataSuccess = true;
+      // } catch (uploadError) {
+      //   console.warn("Pinata upload failed (Offline):", uploadError);
+      // }
 
-      // 5. Try Backend Sync (Best Effort)
+      // 5. Backend Sync (Server will upload to Pinata)
       try {
         const response = await fetch(`${API_URL}/api/ride`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...rideData, cid })
+          body: JSON.stringify({ ...rideData, cid: null }) // We don't send CID, server generates it
         });
 
         if (response.ok) {
@@ -313,10 +313,8 @@ function MainApp() {
 
   const claimReward = async () => {
     if (!account) return;
-    if (!walletProvider) {
-      alert("Provider not found. Please connect wallet.");
-      return;
-    }
+
+    // Server-Side Minting: We don't need a signer, just the address.
 
     if (pendingReward < 50) {
       alert("You need at least 50 CYCL to claim rewards!");
@@ -325,41 +323,34 @@ function MainApp() {
 
     try {
       setLoading(true);
-      const provider = new ethers.BrowserProvider(walletProvider, 'any');
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-      // 1. Fetch pending CIDs from backend
-      const userResponse = await fetch(`${API_URL}/api/user/${account}`);
-      const userData = await userResponse.json();
-      const pendingCids = userData.pending_cids || [];
+      // Call the backend via RideService
+      // The backend handles data fetching, minting, and DB updates.
+      const result = await RideService.claimRewards(account);
 
-      // For this prototype, we mint a single tokenURI containing all CIDs or just the last one.
-      // A better approach would be to batch mint or create a composite IPFS object.
-      // Let's create a simple JSON on the fly or just use the last CID as proof.
-      const tokenURI = pendingCids.length > 0 ? pendingCids[pendingCids.length - 1] : "ipfs://QmEmpty";
-
-      // 2. Mint with Token URI
-      const tx = await contract.mint(account, ethers.parseUnits(pendingReward.toString(), 18), tokenURI);
-      await tx.wait();
-
-      // 3. Notify backend of success to reset balance
-      await fetch(`${API_URL}/api/claim-success`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: account })
-      });
+      console.log("Claim Success:", result);
 
       // Refresh balance
-      const bal = await contract.balanceOf(account);
-      setBalance(ethers.formatUnits(bal, 18));
+      if (walletProvider) {
+        try {
+          const provider = new ethers.BrowserProvider(walletProvider, 'any');
+          const contract = new ethers.Contract(contractAddress, contractABI, provider); // Read-only is fine
+          const bal = await contract.balanceOf(account);
+          setBalance(ethers.formatUnits(bal, 18));
+        } catch (e) {
+          console.warn("Could not refresh balance:", e);
+        }
+      }
+
       setPendingReward(0);
       setLoading(false);
-      alert("Reward claimed successfully! Data saved on IPFS.");
+      alert(`Reward claimed successfully! Tx: ${result.txHash}`);
     } catch (error) {
       console.error("Error claiming reward:", error);
       setLoading(false);
-      alert("Error claiming reward: " + (error.reason || error.message));
+      // Nice error message handling
+      const msg = error.response?.data?.error || error.message;
+      alert("Error claiming reward: " + msg);
     }
   };
 
