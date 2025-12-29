@@ -73,15 +73,17 @@ function MainApp() {
   }, [isConnected, address]);
 
   const connectWallet = async (userAddress) => {
-    setLoading(true);
     try {
       let provider;
       if (walletProvider) {
         provider = new ethers.BrowserProvider(walletProvider, 'any')
       } else {
         // Fallback or return if no provider
+        console.warn("No wallet provider found, skipping connection");
         return;
       }
+
+      setLoading(true);
 
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
@@ -194,10 +196,15 @@ function MainApp() {
     }
     setLoading(true);
 
-    const km = 10;
+    // Generate Random Ride Data
+    const { km, avg_speed, gps_data } = RideService.simulateRideData();
+    console.log(`Simulating Ride: ${km}km at ${avg_speed}km/h`);
+
     const rideData = {
       address: account,
       km: km,
+      avg_speed: avg_speed,
+      gps_data: gps_data,
       timestamp: Date.now(),
       device: 'android_sim'
     };
@@ -233,9 +240,9 @@ function MainApp() {
         });
 
         if (response.ok) {
-          const userData = await response.json();
+          const resData = await response.json();
           // Update with server truth if available
-          setPendingReward(parseFloat(userData.pending_balance));
+          setPendingReward(parseFloat(resData.user.pending_balance));
 
           // Remove local copy since server has it
           await RideService.removeLocalRide(rideData.timestamp);
@@ -316,8 +323,8 @@ function MainApp() {
 
     // Server-Side Minting: We don't need a signer, just the address.
 
-    if (pendingReward < 50) {
-      alert("You need at least 50 CYCL to claim rewards!");
+    if (pendingReward < 20) {
+      alert("You need at least 20 CYCL to claim rewards!");
       return;
     }
 
@@ -438,10 +445,10 @@ function MainApp() {
               <button
                 className="btn-primary"
                 onClick={claimReward}
-                disabled={loading || pendingReward < 50}
-                style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 50 ? 0.5 : 1 }}
+                disabled={loading || pendingReward < 20}
+                style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 20 ? 0.5 : 1 }}
               >
-                {loading ? 'Processing...' : (pendingReward < 50 ? `Min 50 CYCL to Claim` : 'Claim Reward')}
+                {loading ? 'Processing...' : (pendingReward < 20 ? `Min 20 CYCL to Claim` : 'Claim Reward')}
               </button>
             </div>
 

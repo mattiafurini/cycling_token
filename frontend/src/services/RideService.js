@@ -117,5 +117,31 @@ export const RideService = {
             console.error("Claim Error:", error);
             throw error;
         }
+    },
+
+    /**
+     * Generate random ride data for simulation
+     * @returns {Object} Random ride data (km, speed, gps)
+     */
+    simulateRideData() {
+        // Random distance between 3.0 and 6.0 km
+        const km = parseFloat((Math.random() * (6.0 - 3.0) + 3.0).toFixed(2));
+
+        // Random avg speed between 15 and 30 km/h
+        const avg_speed = parseFloat((Math.random() * (30 - 15) + 15).toFixed(1));
+
+        // Generate mock GPS points (just a few for demo)
+        const gps_data = [];
+        const numPoints = 10;
+        let lat = 41.9028; // Rome base
+        let lng = 12.4964;
+
+        for (let i = 0; i < numPoints; i++) {
+            lat += (Math.random() - 0.5) * 0.01;
+            lng += (Math.random() - 0.5) * 0.01;
+            gps_data.push({ lat, lng, timestamp: Date.now() + i * 60000 });
+        }
+
+        return { km, avg_speed, gps_data };
     }
 };
