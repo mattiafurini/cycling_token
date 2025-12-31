@@ -158,12 +158,7 @@ function MainApp() {
 
       for (const ride of localRides) {
         try {
-          // Try to upload to Pinata if not already done (optimization: check if ride has cid?)
-          // For now, we just re-upload or upload. RideService.uploadToPinata handles it.
-          const cid = await RideService.uploadToPinata(ride);
-
           // Notify backend using the standard endpoint
-          // Note: Backend will generate its own IPFS file, which is fine for redundancy.
           await fetch(`${API_URL}/api/ride`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
