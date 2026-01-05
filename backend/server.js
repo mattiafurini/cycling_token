@@ -82,6 +82,16 @@ app.use(express.json());
 
 // API Endpoints
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        database: pool ? 'connected' : 'disconnected',
+        blockchain: wallet ? wallet.address : 'not connected'
+    });
+});
+
 // Helper to verify IPFS data integrity
 async function verifyIpfsData(cids) {
     if (!cids || cids.length === 0) return 0;
@@ -247,7 +257,19 @@ async function uploadToPinata(data) {
 
 // Record Ride (IPFS Version)
 app.post('/api/ride', async (req, res) => {
-    const { address, km, gps_data, avg_speed } = req.body;
+    // Support both parameter formats for compatibility
+    const address = req.body.address || req.body.user_address;
+    const km = req.body.km || req.body.distance;
+    const gps_data = req.body.gps_data;
+    const avg_speed = req.body.avg_speed;
+    const ipfs_cid = req.body.ipfs_cid; // If client already uploaded to IPFS
+
+    if (!address) {
+        return res.status(400).json({ error: 'Missing address or user_address' });
+    }
+    if (!km && km !== 0) {
+        return res.status(400).json({ error: 'Missing km or distance' });
+    }
 
     try {
         // 1. Check Pro Status
@@ -271,9 +293,14 @@ app.post('/api/ride', async (req, res) => {
             app: "CyclingToken v2"
         };
 
-        // 3. Upload to IPFS
-        const cid = await uploadToPinata(rideData);
-        console.log(`Ride saved to IPFS: ${cid}`);
+        // 3. Upload to IPFS (if not already uploaded by client)
+        let cid = ipfs_cid;
+        if (!cid) {
+            cid = await uploadToPinata(rideData);
+            console.log(`Ride saved to IPFS: ${cid}`);
+        } else {
+            console.log(`Using client-provided IPFS CID: ${cid}`);
+        }
 
         // 4. Update Database (Store Pending Balance + CID + Detailed Data)
 
@@ -299,9 +326,13 @@ app.post('/api/ride', async (req, res) => {
         const updatedUser = await pool.query('SELECT * FROM users WHERE wallet_address = $1', [address]);
 
         res.json({
+            success: true,
             user: updatedUser.rows[0],
             new_ride: rideLogResult.rows[0],
-            latest_cid: cid
+            latest_cid: cid,
+            ride_id: rideLogResult.rows[0].id,
+            tokens_earned: Math.round(reward),
+            ipfs_cid: cid
         });
 
     } catch (err) {

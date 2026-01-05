@@ -17,3 +17,6 @@ ignition/deployments/chain-*/
 
 # DS_Store
 .DS_Store
+.vscode/
+*.log
+**/node_modules/
