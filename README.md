@@ -30,7 +30,7 @@ This project is designed as a native mobile experience. The web interface exists
 *   **Runtime**: Node.js + Express
 *   **Database**: PostgreSQL (Stores user profiles and pending balances)
 *   **Storage**: IPFS (Pinata) for decentralized storage of ride data.
-*   **Security**: Validates GPS telemetry before authorizing Minting on-chain.
+*   **Security**: Validates ride data before authorizing Minting on-chain.
 
 ### Blockchain (Polygon Amoy / Mainnet)
 *   **Contract**: Solidity ERC-20 (Custom `RideMinted` logic)
@@ -52,7 +52,7 @@ This project is designed as a native mobile experience. The web interface exists
 
 1.  **Ride**: The user starts a ride on the Android App.
 2.  **Upload**: When finished, the app uploads the GPS data to the Backend.
-3.  **Verify**: The Backend calculates the reward based on distance/elevation and uploads the proof to **IPFS**.
+3.  **Verify**: The Backend calculates the reward based on distance and uploads the proof to **IPFS**.
 4.  **Mint**: The Backend calls the `mint()` function on the Smart Contract, passing the user's address and the IPFS CID.
 5.  **Reward**: The Smart Contract mints **CYCL** tokens to the user and logs the IPFS CID on-chain as proof.
 
@@ -95,7 +95,6 @@ npx hardhat run scripts/deploy_amoy.js --network amoy
 
 ## 🔐 Security & "Proof of Physical Work"
 To prevent cheating (GPS spoofing), the system implements a hybrid verification model:
-*   **Off-Chain**: The backend analyzes speed, elevation changes, and consistency of GPS points.
 *   **On-Chain**: The blockchain stores the *Result* (Tokens) and the *Reference* (IPFS CID), allowing anyone to audit the physical work that generated the tokens.
 
 ---
