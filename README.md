@@ -1,174 +1,104 @@
-# CyclingToken (CYCL) - Project 2.0
+# CyclingToken (CYCL) - Proof of Physical Work
 
-Welcome to the CyclingToken repository! This project is a "Bike-to-Earn" application that rewards users with ERC-20 tokens for cycling kilometers.
+Welcome to **CyclingToken**, a mobile-first "Bike-to-Earn" application that rewards users with ERC-20 tokens for verified physical activity.
 
-The project has been updated to support rapid local development and cost-effective deployment on Polygon Amoy.
+**Core Concept**: This is a **Proof of Physical Work** protocol. The blockchain serves as an immutable registry where tokens are minted only when physical effort (cycling) is cryptographically verified via GPS data and IPFS storage.
+
+---
+
+## 📱 Project Focus: Android Application
+
+This project is designed as a native mobile experience. The web interface exists primarily for testing and admin visualization.
+
+### Key Features
+*   **Ride Tracking**: Real-time GPS tracking of rides using the Android device.
+*   **Proof of Ride**: Ride data (GPX/JSON) is uploaded to **IPFS** to create a permanent, tamper-proof record of the physical activity.
+*   **Gasless Minting**: Users receive rewards without paying gas fees. The backend verifies the IPFS data and handles the blockchain transaction.
+*   **Wallet Connect**: Seamless login with MetaMask, Rabby, or other Web3 wallets directly on mobile.
+
+---
+
+## 🛠 Technology Stack
+
+### Mobile App (Android)
+*   **Platform**: Native Android (Kotlin/Java)
+*   **Web3 Integration**: WalletConnect / Reown AppKit
+*   **Location**: Native GPS Services
+*   **Networking**: Retrofit / OkHttp for communicating with the Backend Node.js
+
+### Backend (The "Oracle")
+*   **Runtime**: Node.js + Express
+*   **Database**: PostgreSQL (Stores user profiles and pending balances)
+*   **Storage**: IPFS (Pinata) for decentralized storage of ride data.
+*   **Security**: Validates GPS telemetry before authorizing Minting on-chain.
+
+### Blockchain (Polygon Amoy / Mainnet)
+*   **Contract**: Solidity ERC-20 (Custom `RideMinted` logic)
+*   **Framework**: Hardhat
+*   **Network**: Polygon POS (Fast & Low Cost)
 
 ---
 
 ## 📂 Project Structure
 
-Here are the main files and folders that have been created or modified:
-
-### Smart Contracts & Backend (Hardhat)
-- **`contracts/CyclingToken.sol`**: The ERC-20 Smart Contract for the token.
-- **`hardhat.config.js`**: Updated configuration to support **Localhost** and **Polygon Amoy**.
-- **`test/CyclingToken.js`** (New): Automated test suite to verify contract functionality without spending gas.
-- **`scripts/deploy_amoy.js`** (New): Specific script for deployment on the Polygon Amoy testnet.
-
-### Frontend (React + Vite)
-- **`frontend/`** (New): Folder containing the web application.
-  - **`src/App.jsx`**: Main UI logic and Wallet connection.
-  - **`src/index.css`**: Global styles with premium "Dark Mode" design.
-  - **`package.json`**: Dependency management (Vite, Ethers, Framer Motion).
-
-### Backend (Node.js + Express)
-- **`backend/`** (New): API server for data and database management.
-  - **`server.js`**: Express server entry point.
-  - **`package.json`**: Backend dependencies (Express, CORS, Dotenv).
+*   **`android/`**: The main Android Studio project source code.
+*   **`backend/`**: The Node.js API server that acts as the bridge between the App, IPFS, and the Blockchain.
+*   **`contracts/`**: Solidity Smart Contracts.
+*   **`frontend/`** *(Legacy/Test)*: A React web dashboard used for initial testing and contract interactions.
 
 ---
 
-## 🌟 New Features (v2.1 - Server-Side Minting)
+## 🚀 How It Works (The Flow)
 
-### 1. Gasless Claiming (Server-Side Minting)
-Users no longer have to pay gas fees to claim tokens.
-- **Frontend**: Sends a claim request to the server.
-- **Server**: Verifies data and "mints" tokens directly to the user's wallet, paying for gas.
-- **Advantage**: Smooth user experience (no signature popups) and zero cost for the end user.
-
-### 2. IPFS Data Verification (Security) 🔒
-Before minting tokens, the server performs a strict security check:
-1.  **Downloads** raw ride data from IPFS (Pinata).
-2.  **Recalculates** independently the sum of expected rewards.
-3.  **Compares** the calculated total with the pending balance in the database.
-4.  If the two values do not match, the transaction is blocked.
-This guarantees that **every minted token is backed by real, immutable data on IPFS**.
-
-### 3. Hybrid Architecture (IPFS + Blockchain)
-To reduce gas costs and keep data decentralized:
-- **Off-Chain Data (IPFS)**: Ride details are saved on IPFS via the Backend.
-- **On-Chain Data (Polygon)**: The Smart Contract saves the CID (Content Identifier) as proof of work.
+1.  **Ride**: The user starts a ride on the Android App.
+2.  **Upload**: When finished, the app uploads the GPS data to the Backend.
+3.  **Verify**: The Backend calculates the reward based on distance/elevation and uploads the proof to **IPFS**.
+4.  **Mint**: The Backend calls the `mint()` function on the Smart Contract, passing the user's address and the IPFS CID.
+5.  **Reward**: The Smart Contract mints **CYCL** tokens to the user and logs the IPFS CID on-chain as proof.
 
 ---
 
-## 🚀 Quick Start Guide: How to Run Everything
+## ⚙️ Setup & Installation
 
-### 1. Prerequisites
-Make sure you have installed:
-- Node.js (v18 or higher)
-- A Wallet (Rabby or MetaMask) installed in the browser.
-- PostgreSQL installed and active.
+### 1. Backend Setup
+The backend is required for the app to function (Minting & Database).
 
-### 2. Database Setup (PostgreSQL)
-1.  **Create User and Database**:
-    ```bash
-    sudo -u postgres psql -c "CREATE USER cycling_user WITH PASSWORD 'secure_password';"
-    sudo -u postgres psql -c "CREATE DATABASE cycling_token_db OWNER cycling_user;"
-    ```
-2.  **Create Tables**:
-    ```bash
-    sudo -u postgres psql -d cycling_token_db -c "CREATE TABLE users (wallet_address VARCHAR(42) PRIMARY KEY, pending_balance NUMERIC DEFAULT 0, total_km NUMERIC DEFAULT 0, is_pro BOOLEAN DEFAULT FALSE, pro_expiry TIMESTAMP, pending_cids TEXT[] DEFAULT '{}');"
-    sudo -u postgres psql -d cycling_token_db -c "GRANT ALL PRIVILEGES ON TABLE users TO cycling_user;"
-    ```
-
-### 3. Backend Setup (API Server)
-Move to the backend folder:
 ```bash
+# Navigate to backend
 cd backend
+
+# Install dependencies
 npm install
-```
 
-#### `.env` Configuration
-Create a `.env` file in the `backend/` folder with the following data (CRITICAL):
-```env
-# Database
-DB_USER=cycling_user
-DB_HOST=localhost
-DB_NAME=cycling_token_db
-DB_PASSWORD=secure_password
-DB_PORT=5432
+# Configure .env (See example below)
+cp .env.example .env
 
-# Blockchain (The Server pays Gas!)
-RPC_URL=https://rpc-amoy.polygon.technology/
-PRIVATE_KEY=your_wallet_private_key
-CONTRACT_ADDRESS=0x2AAd40100641dBd6336eDC60832fc237bFe39C95
-
-# IPFS
-PINATA_JWT=your_long_jwt_key
-```
-
-Start the server:
-```bash
+# Start Server
 node server.js
 ```
-The server will be active at `http://localhost:3000`.
 
-### 4. Frontend Setup (Web Interface)
-Move to the frontend folder:
+### 2. Smart Contract (Deploy)
+If you need to deploy a new version of the contract:
+
 ```bash
-cd frontend
-npm install
-npm run dev
+npx hardhat run scripts/deploy_amoy.js --network amoy
 ```
-Open `http://localhost:5173`, connect wallet, and start riding!
+
+### 3. Running the Android App
+1.  Open the `android/` folder in **Android Studio**.
+2.  Sync Gradle files.
+3.  Connect a physical device via USB or use an Emulator.
+4.  **Important**: Ensure your phone is on the same Wi-Fi as your PC if using a local backend, or update the `BASE_URL` in the Android code to point to your Azure/Cloud instance.
+5.  Build & Run.
 
 ---
 
-## 🛠 Technologies Used
-- **Blockchain**: Solidity, Hardhat, Ethers.js
-- **Server**: Node.js, Express, pg (PostgreSQL)
-- **Frontend**: React 19, Vite, Reown AppKit (WalletConnect)
-- **Storage**: Pinata (IPFS)
-- **Network**: Polygon Amoy (Testnet)
+## 🔐 Security & "Proof of Physical Work"
+To prevent cheating (GPS spoofing), the system implements a hybrid verification model:
+*   **Off-Chain**: The backend analyzes speed, elevation changes, and consistency of GPS points.
+*   **On-Chain**: The blockchain stores the *Result* (Tokens) and the *Reference* (IPFS CID), allowing anyone to audit the physical work that generated the tokens.
 
 ---
 
-## 📝 Development Notes
-- **Design**: The interface uses pure CSS with variables for a modern and easy-to-modify look.
-- **Compatibility**: The project is configured to run with Node.js v18 (LTS).
-
-## ☁️ Deployment on Azure (Optional - Production)
-
-To move the project from your local PC to a live server:
-
-### 1. Create Azure VM
-- **OS**: Ubuntu Server 22.04 LTS
-- **Networking**: Allow ports 22 (SSH), 80 (HTTP), 443 (HTTPS), and 3000 (Node.js).
-
-### 2. Install Dependencies on VM
-Connect via SSH and install Node.js and PostgreSQL:
-```bash
-sudo apt update && sudo apt upgrade -y
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs git postgresql postgresql-contrib nginx
-```
-
-### 3. Deploy Code
-Clone the repo and install dependencies:
-```bash
-git clone https://github.com/mattiafurini/cycling_token.git
-cd cycling_token/backend
-npm install
-```
-**Important**: Configure the `.env` file on the VM with the production values (Database user, Private Key, etc.).
-
-### 4. Run Forever (PM2)
-Use PM2 to keep the server running even if you disconnect:
-```bash
-sudo npm install -g pm2
-pm2 start server.js --name "cycling-backend"
-pm2 save
-pm2 startup
-```
-
-### 5. Mobile App Connection (Android)
-Android requires HTTPS or cleartext permission.
-- **Option A (Easy)**: Open port 3000 on Azure Firewall and use `http://YOUR_VM_IP:3000`. Enable `usesCleartextTraffic` in `AndroidManifest.xml`.
-- **Option B (Secure)**: Use Nginx as a Reverse Proxy to serve the API on port 80/443.
-
----
-
-## 🔮 Roadmap
-- **Disaster Recovery**: Automatic DB reconstruction starting from on-chain and IPFS data.
-- **Mobile App**: Deployment of the Android version already configured in `frontend/android`.
+## 📝 License
+MIT
