@@ -21,10 +21,11 @@ This project is designed as a native mobile experience. The web interface exists
 ## 🛠 Technology Stack
 
 ### Mobile App (Android)
-*   **Platform**: Native Android (Kotlin/Java)
-*   **Web3 Integration**: WalletConnect / Reown AppKit
-*   **Location**: Native GPS Services
-*   **Networking**: Retrofit / OkHttp for communicating with the Backend Node.js
+*   **Platform**: Native Android (Kotlin)
+*   **Web3 Integration**: Web3j v4.9.8 (Blockchain queries)
+*   **Location**: GPS Simulation (no real GPS tracking required)
+*   **Networking**: Retrofit 2.9.0 + OkHttp for Backend API
+*   **Storage**: IPFS/Pinata (Client-side upload of ride metadata)
 
 ### Backend (The "Oracle")
 *   **Runtime**: Node.js + Express
@@ -41,20 +42,25 @@ This project is designed as a native mobile experience. The web interface exists
 
 ## 📂 Project Structure
 
-*   **`android/`**: The main Android Studio project source code.
-*   **`backend/`**: The Node.js API server that acts as the bridge between the App, IPFS, and the Blockchain.
-*   **`contracts/`**: Solidity Smart Contracts.
-*   **`frontend/`** *(Legacy/Test)*: A React web dashboard used for initial testing and contract interactions.
+*   **`/AndroidStudioProjects/test/`**: Native Android app (Kotlin) - production mobile client
+*   **`backend/`**: Node.js API server that acts as the bridge between the App, IPFS, and the Blockchain
+*   **`contracts/`**: Solidity Smart Contracts (CyclingToken ERC-20)
+*   **`frontend/`** *(Test)*: React web dashboard for testing and contract interactions
 
 ---
 
 ## 🚀 How It Works (The Flow)
 
-1.  **Ride**: The user starts a ride on the Android App.
-2.  **Upload**: When finished, the app uploads the GPS data to the Backend.
-3.  **Verify**: The Backend calculates the reward based on distance and uploads the proof to **IPFS**.
-4.  **Mint**: The Backend calls the `mint()` function on the Smart Contract, passing the user's address and the IPFS CID.
-5.  **Reward**: The Smart Contract mints **CYCL** tokens to the user and logs the IPFS CID on-chain as proof.
+1.  **Ride**: User starts a ride on the Android App (GPS simulation)
+2.  **Upload**: App uploads ride metadata (distance, reward) to **IPFS** via Pinata
+3.  **Save**: App sends ride data to Backend `/api/ride` (includes IPFS CID)
+4.  **Wait**: 4-second delay for Pinata synchronization
+5.  **Claim**: App requests token minting via Backend `/api/claim`
+6.  **Verify**: Backend validates IPFS data against database records
+7.  **Mint**: Backend calls Smart Contract `mint()` function (gasless for user)
+8.  **Reward**: User receives **CYCL** tokens, viewable in MetaMask and app Profile
+
+**Reward Rate**: 1 CYCL token per kilometer
 
 ---
 
@@ -79,12 +85,18 @@ node server.js
 
 ### 2. Smart Contract (Deploy)
 If you need to deploy a new version of the contract:
-
-```bash
-npx hardhat run scripts/deploy_amoy.js --network amoy
-```
-
 ### 3. Running the Android App
+
+**Quick Install (Recommended)**:
+Download the latest APK from [GitHub Releases](https://github.com/mattiafurini/cycling_token/releases) and install on your Android device. The app is pre-configured to connect to the production server.
+
+**Build from Source** (Developers only):
+1.  Open `/AndroidStudioProjects/test/` in **Android Studio**
+2.  Sync Gradle files
+3.  Connect physical device via USB or use Emulator
+4.  Build & Run: `./gradlew installDebug`
+
+**First Use**: Go to Wallet tab → Follow guided setup → Add Polygon Amoy network + Token in MetaMask → Enter wallet addresshe Android App
 1.  Open the `android/` folder in **Android Studio**.
 2.  Sync Gradle files.
 3.  Connect a physical device via USB or use an Emulator.
