@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cycling Token Shop</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4ade80;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 30px;
+        }
+        .wallet-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .wallet-address {
+            font-family: monospace;
+            font-size: 12px;
+            color: #4ade80;
+            word-break: break-all;
+        }
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .connect-btn, .buy-btn {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .connect-btn:hover, .buy-btn:hover {
+            opacity: 0.9;
+        }
+        .connect-btn:disabled, .buy-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .shop-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-info h3 {
+            margin-bottom: 5px;
+        }
+        .item-info p {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        .item-price {
+            text-align: right;
+        }
+        .price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        .status.success {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            display: block;
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            display: block;
+        }
+        .status.loading {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            display: block;
+        }
+        .back-btn {
+            background: transparent;
+            border: 1px solid #4ade80;
+            color: #4ade80;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .emoji {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .not-connected {
+            display: block;
+        }
+        .connected {
+            display: none;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚴 Cycling Token Shop</h1>
+        <p class="subtitle">Spendi i tuoi token guadagnati pedalando</p>
+
+        <!-- Not Connected State -->
+        <div id="notConnected" class="wallet-section not-connected">
+            <div class="emoji">🦊</div>
+            <p>Connetti il tuo wallet MetaMask per visualizzare il saldo e acquistare</p>
+            <button class="connect-btn" onclick="connectWallet()">Connetti MetaMask</button>
+        </div>
+
+        <!-- Connected State -->
+        <div id="connected" class="wallet-section connected hidden">
+            <p>Wallet Connesso:</p>
+            <p class="wallet-address" id="walletAddress">-</p>
+            <p class="balance"><span id="tokenBalance">0</span> CYC</p>
+        </div>
+
+        <!-- Shop Items -->
+        <div id="shopItems" class="hidden">
+            <div class="shop-item" data-id="1" data-price="10">
+                <div class="item-info">
+                    <h3>☕ Caffè Gratis</h3>
+                    <p>Un caffè presso i partner</p>
+                </div>
+                <div class="item-price">
+                    <div class="price">10 CYC</div>
+                    <button class="buy-btn" onclick="buyItem(1, 10)">Acquista</button>
+                </div>
+            </div>
+
+            <div class="shop-item" data-id="2" data-price="50">
+                <div class="item-info">
+                    <h3>🎫 Sconto 10%</h3>
+                    <p>Sconto su accessori bici</p>
+                </div>
+                <div class="item-price">
+                    <div class="price">50 CYC</div>
+                    <button class="buy-btn" onclick="buyItem(2, 50)">Acquista</button>
+                </div>
+            </div>
+
+            <div class="shop-item" data-id="3" data-price="100">
+                <div class="item-info">
+                    <h3>👑 Pro 1 Mese</h3>
+                    <p>Statistiche avanzate</p>
+                </div>
+                <div class="item-price">
+                    <div class="price">100 CYC</div>
+                    <button class="buy-btn" onclick="buyItem(3, 100)">Acquista</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <button class="back-btn" onclick="window.close()">Torna all'App</button>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const CONTRACT_ADDRESS = "0xa5D6df2fF2ab79fbf77A588CB2AdDc125667a991";
+        const CHAIN_ID = 80002; // Polygon Amoy
+        
+        const ERC20_ABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function nonces(address owner) view returns (uint256)",
+            "function name() view returns (string)"
+        ];
+
+        let provider, signer, userAddress, contract;
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showStatus('MetaMask non trovato. Installa MetaMask!', 'error');
+                    return;
+                }
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                
+                // Request accounts
+                const accounts = await provider.send("eth_requestAccounts", []);
+                userAddress = accounts[0];
+                
+                // Check network
+                const network = await provider.getNetwork();
+                if (Number(network.chainId) !== CHAIN_ID) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0x' + CHAIN_ID.toString(16),
+                                    chainName: 'Polygon Amoy Testnet',
+                                    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                                    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+                                    blockExplorerUrls: ['https://amoy.polygonscan.com/']
+                                }]
+                            });
+                        }
+                    }
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                }
+
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, provider);
+
+                // Update UI
+                document.getElementById('notConnected').classList.add('hidden');
+                document.getElementById('connected').classList.remove('hidden');
+                document.getElementById('shopItems').classList.remove('hidden');
+                document.getElementById('walletAddress').textContent = 
+                    userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+
+                // Get balance
+                await updateBalance();
+
+            } catch (err) {
+                console.error(err);
+                showStatus('Errore connessione: ' + err.message, 'error');
+            }
+        }
+
+        async function updateBalance() {
+            try {
+                const balance = await contract.balanceOf(userAddress);
+                const formatted = ethers.formatUnits(balance, 18);
+                document.getElementById('tokenBalance').textContent = parseFloat(formatted).toFixed(2);
+            } catch (err) {
+                console.error('Balance error:', err);
+            }
+        }
+
+        async function buyItem(itemId, price) {
+            if (!signer || !userAddress) {
+                showStatus('Connetti prima il wallet!', 'error');
+                return;
+            }
+
+            // Disable all buy buttons
+            document.querySelectorAll('.buy-btn').forEach(btn => btn.disabled = true);
+            showStatus('Preparazione transazione...', 'loading');
+
+            try {
+                // Get nonce and token name
+                const nonce = await contract.nonces(userAddress);
+                const tokenName = await contract.name();
+                
+                // Get server wallet
+                const healthRes = await fetch(`${API_URL}/api/health`);
+                const healthData = await healthRes.json();
+                const spender = healthData.blockchain;
+
+                // Create permit deadline (1 hour from now)
+                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const value = ethers.parseUnits(price.toString(), 18);
+
+                // EIP-712 Domain
+                const domain = {
+                    name: tokenName,
+                    version: "1",
+                    chainId: CHAIN_ID,
+                    verifyingContract: CONTRACT_ADDRESS
+                };
+
+                // EIP-712 Types
+                const types = {
+                    Permit: [
+                        { name: "owner", type: "address" },
+                        { name: "spender", type: "address" },
+                        { name: "value", type: "uint256" },
+                        { name: "nonce", type: "uint256" },
+                        { name: "deadline", type: "uint256" }
+                    ]
+                };
+
+                // EIP-712 Message
+                const message = {
+                    owner: userAddress,
+                    spender: spender,
+                    value: value,
+                    nonce: nonce,
+                    deadline: deadline
+                };
+
+                showStatus('Firma la transazione in MetaMask...', 'loading');
+
+                // Sign typed data
+                const signature = await signer.signTypedData(domain, types, message);
+                const sig = ethers.Signature.from(signature);
+
+                showStatus('Invio transazione al server...', 'loading');
+
+                // Send to backend
+                const buyRes = await fetch(`${API_URL}/api/buy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        address: userAddress,
+                        item_id: itemId,
+                        price: price,
+                        permit: {
+                            deadline: deadline,
+                            v: sig.v,
+                            r: sig.r,
+                            s: sig.s
+                        }
+                    })
+                });
+
+                const buyData = await buyRes.json();
+
+                if (buyData.success) {
+                    showStatus(`✅ Acquisto completato! TX: ${buyData.txHash.slice(0, 10)}...`, 'success');
+                    await updateBalance();
+                } else {
+                    showStatus('❌ Errore: ' + (buyData.error || 'Transazione fallita'), 'error');
+                }
+
+            } catch (err) {
+                console.error(err);
+                if (err.code === 'ACTION_REJECTED') {
+                    showStatus('Transazione annullata', 'error');
+                } else {
+                    showStatus('❌ Errore: ' + err.message, 'error');
+                }
+            } finally {
+                document.querySelectorAll('.buy-btn').forEach(btn => btn.disabled = false);
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        // Auto-connect if already connected
+        if (window.ethereum && window.ethereum.selectedAddress) {
+            connectWallet();
+        }
+
+        // Listen for account changes
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    userAddress = accounts[0];
+                    document.getElementById('walletAddress').textContent = 
+                        userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                    updateBalance();
+                } else {
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -83,6 +83,9 @@ pool.connect(async (err, client, release) => {
 app.use(cors());
 app.use(express.json());
 
+// Serve static files (shop page)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // API Endpoints
 
 // Health check endpoint
