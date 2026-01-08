@@ -150,6 +150,12 @@
             <div class="emoji">🦊</div>
             <p>Connetti il tuo wallet MetaMask per visualizzare il saldo e acquistare</p>
             <button class="connect-btn" onclick="connectWallet()">Connetti MetaMask</button>
+            <div id="metamaskNotFound" class="hidden" style="margin-top: 15px;">
+                <p style="color: #fbbf24; margin-bottom: 10px;">⚠️ MetaMask non rilevato in questo browser</p>
+                <a id="openInMetaMask" class="connect-btn" style="display: block; text-decoration: none; text-align: center;">
+                    Apri nel Browser MetaMask
+                </a>
+            </div>
         </div>
 
         <!-- Connected State -->
@@ -213,10 +219,28 @@
 
         let provider, signer, userAddress, contract;
 
+        // Check if we need to show MetaMask deep link
+        function checkMetaMaskAvailability() {
+            if (!window.ethereum) {
+                // MetaMask not available - show deep link to open in MetaMask browser
+                document.getElementById('metamaskNotFound').classList.remove('hidden');
+                document.querySelector('.connect-btn').style.display = 'none';
+                
+                // Create MetaMask deep link
+                const currentUrl = window.location.href;
+                const metamaskLink = `https://metamask.app.link/dapp/${currentUrl.replace(/^https?:\/\//, '')}`;
+                document.getElementById('openInMetaMask').href = metamaskLink;
+            }
+        }
+
+        // Run on page load
+        setTimeout(checkMetaMaskAvailability, 500);
+
         async function connectWallet() {
             try {
                 if (!window.ethereum) {
                     showStatus('MetaMask non trovato. Installa MetaMask!', 'error');
+                    checkMetaMaskAvailability();
                     return;
                 }
 
