@@ -4,6 +4,8 @@ import { Wallet, Bike, ArrowRight, Timer, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { contractAddress, contractABI, API_URL } from './config';
 import { RideService } from './services/RideService';
+import Shop from './components/Shop';
+
 
 // AppKit Imports
 import { createAppKit } from '@reown/appkit/react'
@@ -61,6 +63,7 @@ function MainApp() {
   const [pendingReward, setPendingReward] = useState(0);
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [view, setView] = useState('dashboard');
 
   // Sync AppKit address with local state
   useEffect(() => {
@@ -89,8 +92,10 @@ function MainApp() {
       const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
       // Check Owner
-      const contractOwner = await contract.owner();
-      setOwner(contractOwner);
+      try {
+        const contractOwner = await contract.owner();
+        setOwner(contractOwner);
+      } catch (e) { console.warn("Owner check failed", e); }
 
       // Check Balance
       const bal = await contract.balanceOf(userAddress);
@@ -359,116 +364,114 @@ function MainApp() {
   return (
     <div className="app-container">
       <nav className="container nav">
-        <div className="logo">
+        {/* ... logo ... */}
+        <div className="logo" onClick={() => setView('dashboard')} style={{ cursor: 'pointer' }}>
           <Bike size={32} color="var(--accent-primary)" />
           <span>CyclingToken</span>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => open()}
-          className="btn-connect"
-        >
-          <Wallet className="w-5 h-5" />
-          <span>{isConnected ? `${address.substring(0, 6)}...${address.substring(38)}` : "Connect Wallet"}</span>
-        </motion.button>
+        {/* ... */}
       </nav>
 
       <main className="container hero">
-        <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h1 className="hero-title">
-            Ride Your Bike. <br />
-            <span className="text-accent">Earn Crypto.</span>
-          </h1>
-          <p className="hero-text">
-            Join the revolution of sustainable transport. Track your rides, reduce your carbon footprint, and get rewarded with Cycling Tokens.
-          </p>
-          <div className="btn-group">
-            <button className="btn-primary" onClick={simulateRide} disabled={loading}>
-              Start Riding <ArrowRight size={20} />
-            </button>
-            <button className="btn-secondary">
-              Learn More
-            </button>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="card-container"
-        >
-          <div className="card-glow"></div>
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Pending Rewards</p>
-                <h3 className="balance-amount">{pendingReward} CYCL</h3>
+        {view === 'dashboard' ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <h1 className="hero-title">
+                Ride Your Bike. <br />
+                <span className="text-accent">Earn Crypto.</span>
+              </h1>
+              <p className="hero-text">
+                Join the revolution of sustainable transport. Track your rides, reduce your carbon footprint, and get rewarded with Cycling Tokens.
+              </p>
+              <div className="btn-group">
+                <button className="btn-primary" onClick={simulateRide} disabled={loading}>
+                  Start Riding <ArrowRight size={20} />
+                </button>
+                <button className="btn-secondary" onClick={() => setView('shop')}>
+                  Go to Shop
+                </button>
               </div>
-              <button
-                className="icon-box"
-                onClick={!isPro ? upgradeToPro : null}
-                disabled={loading}
-                style={{
-                  cursor: isPro ? 'default' : 'pointer',
-                  background: isPro ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'rgba(255, 255, 255, 0.1)',
-                  color: isPro ? '#000' : '#fff',
-                  border: isPro ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.5rem',
-                  minWidth: '80px',
-                  height: 'auto',
-                  gap: '4px'
-                }}
-              >
-                <Trophy size={24} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
-                  {isPro ? 'PRO' : 'GET PRO'}
-                </span>
-              </button>
-            </div>
+            </motion.div>
 
-            <div className="btn-group" style={{ marginTop: '1.5rem' }}>
-              <button
-                className="btn-primary"
-                onClick={claimReward}
-                disabled={loading || pendingReward < 20}
-                style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 20 ? 0.5 : 1 }}
-              >
-                {loading ? 'Processing...' : (pendingReward < 20 ? `Min 20 CYCL to Claim` : 'Claim Reward')}
-              </button>
-            </div>
-
-            <div className="card-divider"></div>
-
-            <div>
-              <div className="status-row">
-                <div className="status-label">
-                  <div className="dot dot-green"></div>
-                  <span>Status</span>
+            {/* ... Card Container ... */}
+            <motion.div
+              // ... props ...
+              className="card-container"
+            >
+              {/* ... Existing Card Content ... */}
+              <div className="card-glow"></div>
+              <div className="card">
+                {/* ... header ... */}
+                <div className="card-header">
+                  <div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Pending Rewards</p>
+                    <h3 className="balance-amount">{pendingReward} CYCL</h3>
+                  </div>
+                  <button
+                    className="icon-box"
+                    onClick={!isPro ? upgradeToPro : null}
+                    disabled={loading}
+                    style={{
+                      cursor: isPro ? 'default' : 'pointer',
+                      background: isPro ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'rgba(255, 255, 255, 0.1)',
+                      color: isPro ? '#000' : '#fff',
+                      border: isPro ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.5rem',
+                      minWidth: '80px',
+                      height: 'auto',
+                      gap: '4px'
+                    }}
+                  >
+                    <Trophy size={24} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      {isPro ? 'PRO' : 'GET PRO'}
+                    </span>
+                  </button>
                 </div>
-                <span className="status-value-active">Active</span>
-              </div>
-              <div className="status-row">
-                <div className="status-label">
-                  <div className="dot dot-cyan"></div>
-                  <span>Network</span>
+
+                <div className="btn-group" style={{ marginTop: '1.5rem' }}>
+                  <button
+                    className="btn-primary"
+                    onClick={claimReward}
+                    disabled={loading || pendingReward < 20}
+                    style={{ width: '100%', justifyContent: 'center', opacity: pendingReward < 20 ? 0.5 : 1 }}
+                  >
+                    {loading ? 'Processing...' : (pendingReward < 20 ? `Min 20 CYCL to Claim` : 'Claim Reward')}
+                  </button>
                 </div>
-                <span className="status-value-network">Polygon Amoy</span>
+
+                <div className="card-divider"></div>
+
+                <div>
+                  <div className="status-row">
+                    <div className="status-label">
+                      <div className="dot dot-green"></div>
+                      <span>Status</span>
+                    </div>
+                    <span className="status-value-active">Active</span>
+                  </div>
+                  <div className="status-row">
+                    <div className="status-label">
+                      <div className="dot dot-cyan"></div>
+                      <span>Network</span>
+                    </div>
+                    <span className="status-value-network">Polygon Amoy</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </motion.div>
-
-
+            </motion.div>
+          </>
+        ) : (
+          <Shop onBack={() => setView('dashboard')} />
+        )}
       </main>
     </div >
   );

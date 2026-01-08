@@ -11,11 +11,13 @@ const PORT = process.env.PORT || 3000;
 // Blockchain Configuration
 const RPC_URL = process.env.RPC_URL || "https://rpc-amoy.polygon.technology/";
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+const CONTRACT_ADDRESS = "0xa5D6df2fF2ab79fbf77A588CB2AdDc125667a991";
 
 // ABI for Minting (Minimal)
 const MINT_ABI = [
-    "function mint(address to, uint256 amount, string memory tokenURI) public"
+    "function mint(address to, uint256 amount, string memory tokenURI) public",
+    "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public",
+    "function burnFrom(address account, uint256 amount) public"
 ];
 
 let contract;
@@ -84,8 +86,8 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
+    res.json({
+        status: 'healthy',
         timestamp: new Date().toISOString(),
         database: pool ? 'connected' : 'disconnected',
         blockchain: wallet ? wallet.address : 'not connected'
@@ -356,6 +358,62 @@ app.post('/api/upgrade-pro', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Shop: Buy Item (Gasless Burn)
+app.post('/api/buy', async (req, res) => {
+    const { address, item_id, price, permit } = req.body;
+
+    if (!address || !price || !permit) {
+        return res.status(400).json({ error: "Missing parameters" });
+    }
+
+    try {
+        console.log(`Processing Buy for ${address}: Item ${item_id} for ${price} CYCL`);
+
+        // 1. Submit Permit (Gasless Approval)
+        // permit signature = { deadline, v, r, s }
+        const { deadline, v, r, s } = permit;
+
+        // We need to estimate gas or just send it. 
+        // Note: If permit was already used, this will revert.
+        // Ideally we check allowance first, but calling permit is fine.
+
+        try {
+            const txPermit = await contract.permit(
+                address,
+                wallet.address, // Spender is the Server (wallet)
+                ethers.parseUnits(price.toString(), 18),
+                deadline,
+                v,
+                r,
+                s
+            );
+            await txPermit.wait();
+            console.log("Permit Successful");
+        } catch (e) {
+            console.warn("Permit failed (might be already approved?):", e.message);
+            // We continue to try burnFrom, in case allowance exists from previous permit
+        }
+
+        // 2. Execute Burn
+        const amountWei = ethers.parseUnits(price.toString(), 18);
+        const txBurn = await contract.burnFrom(address, amountWei);
+        console.log(`Burn Transaction: ${txBurn.hash}`);
+        await txBurn.wait();
+
+        // 3. Record Purchase (Optional: Add to DB)
+        // For now, we return success
+        res.json({
+            success: true,
+            txHash: txBurn.hash,
+            message: `Successfully bought Item ${item_id}`
+        });
+
+    } catch (err) {
+        console.error("Buy Error:", err);
+        res.status(500).json({ error: 'Transaction failed', details: err.message });
     }
 });
 

@@ -34,7 +34,7 @@ This project is designed as a native mobile experience. The web interface exists
 *   **Security**: Validates ride data before authorizing Minting on-chain.
 
 ### Blockchain (Polygon Amoy / Mainnet)
-*   **Contract**: Solidity ERC-20 (Custom `RideMinted` logic)
+*   **Contract**: Solidity ERC-20 + **ERC20Permit** (Gasless approvals)
 *   **Framework**: Hardhat
 *   **Network**: Polygon POS (Fast & Low Cost)
 
@@ -59,6 +59,7 @@ This project is designed as a native mobile experience. The web interface exists
 6.  **Verify**: Backend validates IPFS data against database records
 7.  **Mint**: Backend calls Smart Contract `mint()` function (gasless for user)
 8.  **Reward**: User receives **CYCL** tokens, viewable in MetaMask and app Profile
+9.  **Shop (Burn)**: Users can buy items in the app's Shop. They sign a permit (free, off-chain), and the Server submits the transaction to burn the tokens.
 
 **Reward Rate**: 1 CYCL token per kilometer
 

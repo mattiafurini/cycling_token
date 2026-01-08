@@ -2,12 +2,17 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CyclingToken is ERC20, Ownable, ERC20Burnable {
+contract CyclingToken is ERC20, Ownable, ERC20Burnable, ERC20Permit {
     constructor(
         uint256 initialSupply
-    ) ERC20("CyclingToken", "CYCL") Ownable(msg.sender) {
+    )
+        ERC20("CyclingToken", "CYCL")
+        Ownable(msg.sender)
+        ERC20Permit("CyclingToken")
+    {
         if (initialSupply > 0) {
             _mint(msg.sender, initialSupply * 10 ** decimals());
         }
