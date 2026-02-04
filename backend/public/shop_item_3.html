@@ -346,15 +346,23 @@
                 const buyData = await buyRes.json();
 
                 if (buyData.success) {
-                    showStatus('✅ Acquisto completato! Chiusura in corso...', 'success');
+                    showStatus('✅ Acquisto completato! Ritorno all\'app...', 'success');
                     await updateBalance();
                     
-                    // Try to close after 2 seconds
+                    // Try multiple methods to return to app
                     setTimeout(() => {
+                        // Method 1: Try window.close() for MetaMask browser
                         window.close();
-                        // If window.close() doesn't work, show message
+                        
+                        // Method 2: Try Android intent (if opened from Android app)
                         setTimeout(() => {
-                            showStatus('✅ Acquisto completato! Puoi tornare all\'app', 'success');
+                            // If still here, try to go back
+                            window.history.back();
+                            
+                            // If that doesn't work, show success message
+                            setTimeout(() => {
+                                showStatus('✅ Acquisto completato! Chiudi questa pagina per tornare', 'success');
+                            }, 500);
                         }, 500);
                     }, 2000);
                 } else {
