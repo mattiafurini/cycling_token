@@ -281,7 +281,10 @@
                 return;
             }
 
-            document.querySelector('.buy-btn').disabled = true;
+            const buyButton = document.querySelector('.buy-btn');
+            buyButton.disabled = true;
+            buyButton.style.background = '#555';
+            buyButton.textContent = 'Elaborazione...';
             showStatus('Preparazione transazione...', 'loading');
 
             try {
@@ -346,27 +349,25 @@
                 const buyData = await buyRes.json();
 
                 if (buyData.success) {
-                    showStatus('✅ Acquisto completato! Ritorno all\'app...', 'success');
+                    // Hide wallet and product card
+                    document.getElementById('connected').classList.add('hidden');
+                    document.getElementById('productCard').classList.add('hidden');
+                    
+                    showStatus('✅ Acquisto confermato! Ora puoi tornare all\'app', 'success');
                     await updateBalance();
                     
-                    // Try multiple methods to return to app
+                    // Try to go back after 3 seconds
                     setTimeout(() => {
-                        // Method 1: Try window.close() for MetaMask browser
                         window.close();
-                        
-                        // Method 2: Try Android intent (if opened from Android app)
                         setTimeout(() => {
-                            // If still here, try to go back
                             window.history.back();
-                            
-                            // If that doesn't work, show success message
-                            setTimeout(() => {
-                                showStatus('✅ Acquisto completato! Chiudi questa pagina per tornare', 'success');
-                            }, 500);
-                        }, 500);
-                    }, 2000);
+                        }, 300);
+                    }, 3000);
                 } else {
                     showStatus('❌ Errore: ' + (buyData.error || 'Transazione fallita'), 'error');
+                    buyButton.disabled = false;
+                    buyButton.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+                    buyButton.textContent = 'Conferma Acquisto';
                 }
 
             } catch (err) {
@@ -376,8 +377,9 @@
                 } else {
                     showStatus('❌ Errore: ' + err.message, 'error');
                 }
-            } finally {
-                document.querySelector('.buy-btn').disabled = false;
+                buyButton.disabled = false;
+                buyButton.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
+                buyButton.textContent = 'Conferma Acquisto';
             }
         }
 
