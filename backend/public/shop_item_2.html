@@ -80,6 +80,13 @@
             font-size: 80px;
             margin-bottom: 20px;
         }
+        .product-image {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            border-radius: 12px;
+        }
         .product-title {
             font-size: 28px;
             font-weight: bold;
@@ -170,7 +177,8 @@
 
         <!-- Product Card -->
         <div id="productCard" class="product-card hidden">
-            <div class="product-emoji">💧</div>
+            <img src="borraccia-pro.jpg" alt="Borraccia Pro UCI" class="product-image" onerror="this.style.display='none'; this.parentElement.querySelector('.product-emoji-fallback').style.display='block';">
+            <div class="product-emoji product-emoji-fallback" style="display:none;">💧</div>
             <h2 class="product-title">Borraccia Pro</h2>
             <p class="product-description">Idratazione continua</p>
             <div class="product-price">30 CYCL</div>
