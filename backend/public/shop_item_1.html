@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caffè Gratis - Cycling Token Shop</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4ade80;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 30px;
+        }
+        .wallet-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .wallet-address {
+            font-family: monospace;
+            font-size: 12px;
+            color: #4ade80;
+            word-break: break-all;
+        }
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .connect-btn, .buy-btn {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .connect-btn:hover, .buy-btn:hover {
+            opacity: 0.9;
+        }
+        .connect-btn:disabled, .buy-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .product-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .product-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .product-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .product-description {
+            color: #9ca3af;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .product-price {
+            font-size: 36px;
+            font-weight: bold;
+            color: #4ade80;
+            margin-bottom: 20px;
+        }
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        .status.success {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+            display: block;
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            display: block;
+        }
+        .status.loading {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            display: block;
+        }
+        .back-btn {
+            background: transparent;
+            border: 1px solid #4ade80;
+            color: #4ade80;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .emoji {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .not-connected {
+            display: block;
+        }
+        .connected {
+            display: none;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚴 Cycling Token Shop</h1>
+        <p class="subtitle">Conferma il tuo acquisto</p>
+
+        <!-- Not Connected State -->
+        <div id="notConnected" class="wallet-section not-connected">
+            <div class="emoji">🦊</div>
+            <p>Connetti il tuo wallet MetaMask per completare l'acquisto</p>
+            <button class="connect-btn" onclick="connectWallet()">Connetti MetaMask</button>
+            <div id="metamaskNotFound" class="hidden" style="margin-top: 15px;">
+                <p style="color: #fbbf24; margin-bottom: 10px;">⚠️ MetaMask non rilevato in questo browser</p>
+                <a id="openInMetaMask" class="connect-btn" style="display: block; text-decoration: none; text-align: center;">
+                    Apri nel Browser MetaMask
+                </a>
+            </div>
+        </div>
+
+        <!-- Connected State -->
+        <div id="connected" class="wallet-section connected hidden">
+            <p>Wallet Connesso:</p>
+            <p class="wallet-address" id="walletAddress">-</p>
+            <p class="balance"><span id="tokenBalance">0</span> CYCL</p>
+        </div>
+
+        <!-- Product Card -->
+        <div id="productCard" class="product-card hidden">
+            <div class="product-emoji">☕</div>
+            <h2 class="product-title">Caffè Gratis</h2>
+            <p class="product-description">Un caffè presso i nostri partner convenzionati</p>
+            <div class="product-price">10 CYCL</div>
+            <button class="buy-btn" onclick="buyItem()">Conferma Acquisto</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <button class="back-btn" onclick="window.close()">Torna all'App</button>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const CONTRACT_ADDRESS = "0xa5D6df2fF2ab79fbf77A588CB2AdDc125667a991";
+        const CHAIN_ID = 80002; // Polygon Amoy
+        
+        const ITEM_ID = 1;
+        const ITEM_PRICE = 10;
+        
+        const ERC20_ABI = [
+            "function balanceOf(address owner) view returns (uint256)",
+            "function nonces(address owner) view returns (uint256)",
+            "function name() view returns (string)"
+        ];
+
+        let provider, signer, userAddress, contract;
+
+        function checkMetaMaskAvailability() {
+            if (!window.ethereum) {
+                document.getElementById('metamaskNotFound').classList.remove('hidden');
+                document.querySelector('.connect-btn').style.display = 'none';
+                
+                const currentUrl = window.location.href;
+                const metamaskLink = `https://metamask.app.link/dapp/${currentUrl.replace(/^https?:\/\//, '')}`;
+                document.getElementById('openInMetaMask').href = metamaskLink;
+            }
+        }
+
+        setTimeout(checkMetaMaskAvailability, 500);
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showStatus('MetaMask non trovato. Installa MetaMask!', 'error');
+                    checkMetaMaskAvailability();
+                    return;
+                }
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                
+                const accounts = await provider.send("eth_requestAccounts", []);
+                userAddress = accounts[0];
+                
+                const network = await provider.getNetwork();
+                if (Number(network.chainId) !== CHAIN_ID) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0x' + CHAIN_ID.toString(16),
+                                    chainName: 'Polygon Amoy Testnet',
+                                    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                                    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+                                    blockExplorerUrls: ['https://amoy.polygonscan.com/']
+                                }]
+                            });
+                        }
+                    }
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                }
+
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ERC20_ABI, provider);
+
+                document.getElementById('notConnected').classList.add('hidden');
+                document.getElementById('connected').classList.remove('hidden');
+                document.getElementById('productCard').classList.remove('hidden');
+                document.getElementById('walletAddress').textContent = 
+                    userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+
+                await updateBalance();
+
+            } catch (err) {
+                console.error(err);
+                showStatus('Errore connessione: ' + err.message, 'error');
+            }
+        }
+
+        async function updateBalance() {
+            try {
+                const balance = await contract.balanceOf(userAddress);
+                const formatted = ethers.formatUnits(balance, 18);
+                document.getElementById('tokenBalance').textContent = parseFloat(formatted).toFixed(2);
+            } catch (err) {
+                console.error('Balance error:', err);
+            }
+        }
+
+        async function buyItem() {
+            if (!signer || !userAddress) {
+                showStatus('Connetti prima il wallet!', 'error');
+                return;
+            }
+
+            document.querySelector('.buy-btn').disabled = true;
+            showStatus('Preparazione transazione...', 'loading');
+
+            try {
+                const nonce = await contract.nonces(userAddress);
+                const tokenName = await contract.name();
+                
+                const healthRes = await fetch(`${API_URL}/api/health`);
+                const healthData = await healthRes.json();
+                const spender = healthData.blockchain;
+
+                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const value = ethers.parseUnits(ITEM_PRICE.toString(), 18);
+
+                const domain = {
+                    name: tokenName,
+                    version: "1",
+                    chainId: CHAIN_ID,
+                    verifyingContract: CONTRACT_ADDRESS
+                };
+
+                const types = {
+                    Permit: [
+                        { name: "owner", type: "address" },
+                        { name: "spender", type: "address" },
+                        { name: "value", type: "uint256" },
+                        { name: "nonce", type: "uint256" },
+                        { name: "deadline", type: "uint256" }
+                    ]
+                };
+
+                const message = {
+                    owner: userAddress,
+                    spender: spender,
+                    value: value,
+                    nonce: nonce,
+                    deadline: deadline
+                };
+
+                showStatus('Firma la transazione in MetaMask...', 'loading');
+
+                const signature = await signer.signTypedData(domain, types, message);
+                const sig = ethers.Signature.from(signature);
+
+                showStatus('Invio transazione al server...', 'loading');
+
+                const buyRes = await fetch(`${API_URL}/api/buy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        address: userAddress,
+                        item_id: ITEM_ID,
+                        price: ITEM_PRICE,
+                        permit: {
+                            deadline: deadline,
+                            v: sig.v,
+                            r: sig.r,
+                            s: sig.s
+                        }
+                    })
+                });
+
+                const buyData = await buyRes.json();
+
+                if (buyData.success) {
+                    showStatus(`✅ Acquisto completato! TX: ${buyData.txHash.slice(0, 10)}...`, 'success');
+                    await updateBalance();
+                    setTimeout(() => window.close(), 3000);
+                } else {
+                    showStatus('❌ Errore: ' + (buyData.error || 'Transazione fallita'), 'error');
+                }
+
+            } catch (err) {
+                console.error(err);
+                if (err.code === 'ACTION_REJECTED') {
+                    showStatus('Transazione annullata', 'error');
+                } else {
+                    showStatus('❌ Errore: ' + err.message, 'error');
+                }
+            } finally {
+                document.querySelector('.buy-btn').disabled = false;
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        if (window.ethereum && window.ethereum.selectedAddress) {
+            connectWallet();
+        }
+
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    userAddress = accounts[0];
+                    document.getElementById('walletAddress').textContent = 
+                        userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+                    updateBalance();
+                } else {
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
