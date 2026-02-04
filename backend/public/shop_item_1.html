@@ -346,9 +346,17 @@
                 const buyData = await buyRes.json();
 
                 if (buyData.success) {
-                    showStatus(`✅ Acquisto completato! TX: ${buyData.txHash.slice(0, 10)}...`, 'success');
+                    showStatus('✅ Acquisto completato! Chiusura in corso...', 'success');
                     await updateBalance();
-                    setTimeout(() => window.close(), 3000);
+                    
+                    // Try to close after 2 seconds
+                    setTimeout(() => {
+                        window.close();
+                        // If window.close() doesn't work, show message
+                        setTimeout(() => {
+                            showStatus('✅ Acquisto completato! Puoi tornare all\'app', 'success');
+                        }, 500);
+                    }, 2000);
                 } else {
                     showStatus('❌ Errore: ' + (buyData.error || 'Transazione fallita'), 'error');
                 }
