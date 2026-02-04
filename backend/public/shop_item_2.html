@@ -153,24 +153,24 @@
 <body>
     <div class="container">
         <h1>🚴 Cycling Token Shop</h1>
-        <p class="subtitle">Conferma il tuo acquisto</p>
+        <p class="subtitle">Confirm your purchase</p>
 
         <!-- Not Connected State -->
         <div id="notConnected" class="wallet-section not-connected">
             <div class="emoji">🦊</div>
-            <p>Connetti il tuo wallet MetaMask per completare l'acquisto</p>
-            <button class="connect-btn" onclick="connectWallet()">Connetti MetaMask</button>
+            <p>Connect your MetaMask wallet to complete the purchase</p>
+            <button class="connect-btn" onclick="connectWallet()">Connect MetaMask</button>
             <div id="metamaskNotFound" class="hidden" style="margin-top: 15px;">
-                <p style="color: #fbbf24; margin-bottom: 10px;">⚠️ MetaMask non rilevato in questo browser</p>
+                <p style="color: #fbbf24; margin-bottom: 10px;">⚠️ MetaMask not detected in this browser</p>
                 <a id="openInMetaMask" class="connect-btn" style="display: block; text-decoration: none; text-align: center;">
-                    Apri nel Browser MetaMask
+                    Open in MetaMask Browser
                 </a>
             </div>
         </div>
 
         <!-- Connected State -->
         <div id="connected" class="wallet-section connected hidden">
-            <p>Wallet Connesso:</p>
+            <p>Connected Wallet:</p>
             <p class="wallet-address" id="walletAddress">-</p>
             <p class="balance"><span id="tokenBalance">0</span> CYCL</p>
         </div>
@@ -179,15 +179,15 @@
         <div id="productCard" class="product-card hidden">
             <img src="borraccia-pro.jpg" alt="Borraccia Pro UCI" class="product-image" onerror="this.style.display='none'; this.parentElement.querySelector('.product-emoji-fallback').style.display='block';">
             <div class="product-emoji product-emoji-fallback" style="display:none;">💧</div>
-            <h2 class="product-title">Borraccia Pro</h2>
-            <p class="product-description">Idratazione continua</p>
+            <h2 class="product-title">Pro Bottle</h2>
+            <p class="product-description">Continuous hydration</p>
             <div class="product-price">30 CYCL</div>
-            <button class="buy-btn" onclick="buyItem()">Conferma Acquisto</button>
+            <button class="buy-btn" onclick="buyItem()">Confirm Purchase</button>
         </div>
 
         <div id="status" class="status"></div>
 
-        <button class="back-btn" onclick="window.close()">Torna all'App</button>
+        <button class="back-btn" onclick="window.close()">Back to App</button>
     </div>
 
     <script>
@@ -222,7 +222,7 @@
         async function connectWallet() {
             try {
                 if (!window.ethereum) {
-                    showStatus('MetaMask non trovato. Installa MetaMask!', 'error');
+                    showStatus('MetaMask not found. Install MetaMask!', 'error');
                     checkMetaMaskAvailability();
                     return;
                 }
@@ -269,7 +269,7 @@
 
             } catch (err) {
                 console.error(err);
-                showStatus('Errore connessione: ' + err.message, 'error');
+                showStatus('Connection error: ' + err.message, 'error');
             }
         }
 
@@ -285,15 +285,15 @@
 
         async function buyItem() {
             if (!signer || !userAddress) {
-                showStatus('Connetti prima il wallet!', 'error');
+                showStatus('Connect your wallet first!', 'error');
                 return;
             }
 
             const buyButton = document.querySelector('.buy-btn');
             buyButton.disabled = true;
             buyButton.style.background = '#555';
-            buyButton.textContent = 'Elaborazione...';
-            showStatus('Preparazione transazione...', 'loading');
+            buyButton.textContent = 'Processing...';
+            showStatus('Preparing transaction...', 'loading');
 
             try {
                 const nonce = await contract.nonces(userAddress);
@@ -331,12 +331,12 @@
                     deadline: deadline
                 };
 
-                showStatus('Firma la transazione in MetaMask...', 'loading');
+                showStatus('Sign the transaction in MetaMask...', 'loading');
 
                 const signature = await signer.signTypedData(domain, types, message);
                 const sig = ethers.Signature.from(signature);
 
-                showStatus('Invio transazione al server...', 'loading');
+                showStatus('Sending transaction to server...', 'loading');
 
                 const buyRes = await fetch(`${API_URL}/api/buy`, {
                     method: 'POST',
@@ -361,7 +361,7 @@
                     document.getElementById('connected').classList.add('hidden');
                     document.getElementById('productCard').classList.add('hidden');
                     
-                    showStatus('✅ Acquisto confermato! Ora puoi tornare all\'app', 'success');
+                    showStatus('✅ Purchase confirmed! You can now return to the app', 'success');
                     await updateBalance();
                     
                     // Try to go back after 3 seconds
@@ -372,22 +372,22 @@
                         }, 300);
                     }, 3000);
                 } else {
-                    showStatus('❌ Errore: ' + (buyData.error || 'Transazione fallita'), 'error');
+                    showStatus('❌ Error: ' + (buyData.error || 'Transaction failed'), 'error');
                     buyButton.disabled = false;
                     buyButton.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
-                    buyButton.textContent = 'Conferma Acquisto';
+                    buyButton.textContent = 'Confirm Purchase';
                 }
 
             } catch (err) {
                 console.error(err);
                 if (err.code === 'ACTION_REJECTED') {
-                    showStatus('Transazione annullata', 'error');
+                    showStatus('Transaction cancelled', 'error');
                 } else {
-                    showStatus('❌ Errore: ' + err.message, 'error');
+                    showStatus('❌ Error: ' + err.message, 'error');
                 }
                 buyButton.disabled = false;
                 buyButton.style.background = 'linear-gradient(135deg, #4ade80, #22c55e)';
-                buyButton.textContent = 'Conferma Acquisto';
+                buyButton.textContent = 'Confirm Purchase';
             }
         }
 
