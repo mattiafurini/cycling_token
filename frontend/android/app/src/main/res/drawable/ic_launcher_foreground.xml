@@ -1,0 +1,114 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Cycling Token App Icon - Bicycle with Rider -->
+    
+    <!-- Back Wheel -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M32,68 m-12,0 a12,12 0 1,1 24,0 a12,12 0 1,1 -24,0" />
+    
+    <!-- Back Wheel Hub -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,68 m-3,0 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0" />
+    
+    <!-- Back Wheel Spokes -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="1"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M32,56 L32,80 M20,68 L44,68 M24,60 L40,76 M24,76 L40,60" />
+    
+    <!-- Front Wheel -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M76,68 m-12,0 a12,12 0 1,1 24,0 a12,12 0 1,1 -24,0" />
+    
+    <!-- Front Wheel Hub -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M76,68 m-3,0 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0" />
+    
+    <!-- Front Wheel Spokes -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="1"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M76,56 L76,80 M64,68 L88,68 M68,60 L84,76 M68,76 L84,60" />
+    
+    <!-- Frame - Main Triangle -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3.5"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M32,68 L48,50 L76,68 M48,50 L54,68 L32,68" />
+    
+    <!-- Seat Post -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M48,50 L45,42" />
+    
+    <!-- Seat -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M39,42 L51,42 L49,44 L41,44 Z" />
+    
+    <!-- Handlebar Stem -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M76,68 L76,52" />
+    
+    <!-- Handlebar -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M70,52 L82,52 M70,52 L68,48 M82,52 L80,48" />
+    
+    <!-- Pedal Crank -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M54,68 L50,74 M54,68 L58,62" />
+    
+    <!-- Pedals -->
+    <path
+        android:fillColor="#FFAB00"
+        android:pathData="M48,73 L52,73 L52,76 L48,76 Z" />
+    <path
+        android:fillColor="#FFAB00"
+        android:pathData="M56,61 L60,61 L60,64 L56,64 Z" />
+    
+    <!-- Chain Ring (Gear) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeWidth="2"
+        android:strokeColor="#FFAB00"
+        android:pathData="M54,68 m-6,0 a6,6 0 1,1 12,0 a6,6 0 1,1 -12,0" />
+    
+    <!-- Token Symbol (Coin above bike) -->
+    <path
+        android:fillColor="#FFAB00"
+        android:pathData="M54,32 m-8,0 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0" />
+    
+    <!-- Token "C" Letter for Cycling -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M57,28 C53,26 50,28 50,32 C50,36 53,38 57,36"
+        android:strokeWidth="2.5"
+        android:strokeColor="#003300" />
+
+</vector>

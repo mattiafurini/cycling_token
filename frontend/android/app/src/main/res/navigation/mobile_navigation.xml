@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_wallet_connect">
+
+    <fragment
+        android:id="@+id/navigation_wallet_connect"
+        android:name="com.example.test.ui.wallet.WalletConnectFragment"
+        android:label="Connect Wallet"
+        tools:layout="@layout/fragment_wallet_connect">
+        <action
+            android:id="@+id/action_wallet_to_dashboard"
+            app:destination="@id/navigation_dashboard"
+            app:popUpTo="@id/navigation_wallet_connect"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_dashboard"
+        android:name="com.example.test.ui.dashboard.DashboardFragment"
+        android:label="Dashboard"
+        tools:layout="@layout/fragment_dashboard" />
+
+    <fragment
+        android:id="@+id/navigation_history"
+        android:name="com.example.test.ui.history.HistoryFragment"
+        android:label="History"
+        tools:layout="@layout/fragment_history">
+        <action
+            android:id="@+id/action_history_to_detail"
+            app:destination="@id/navigation_ride_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_ride_detail"
+        android:name="com.example.test.ui.history.RideDetailFragment"
+        android:label="Ride Detail"
+        tools:layout="@layout/fragment_ride_detail">
+        <argument
+            android:name="ride_id"
+            app:argType="long" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/navigation_shop"
+        android:name="com.example.test.ui.shop.ShopFragment"
+        android:label="Shop"
+        tools:layout="@layout/fragment_shop" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.test.ui.profile.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation>
